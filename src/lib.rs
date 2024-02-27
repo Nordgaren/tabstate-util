@@ -17,6 +17,7 @@ pub struct NPRefs<'a> {
     footer: &'a [u8; FOOTER_SIZE],
 }
 impl<'a> NPRefs<'a> {
+    /// Returns a new NPRefs object containing the provided refs.
     pub fn new(
         file_path: Option<&'a WideStr>,
         some_metadata: &'a [u8; SIZE_OF_METADATA_STRUCTURE],
@@ -30,15 +31,18 @@ impl<'a> NPRefs<'a> {
             footer,
         }
     }
+    /// Returns the path of the file this TabState represents. Unsaved files do not have a path.
     pub fn get_path(&self) -> Option<&'a WideStr> {
         self.file_path
     }
+    /// Get the main text buffer for the file.
     pub fn get_buffer(&self) -> &'a WideStr {
         self.text_buffer
     }
 }
 
 impl<'a> NPBufferReader<'a> {
+    /// Returns a new NPBufferReader that contains the provided buffer.
     pub fn new(buffer: &'a [u8]) -> Self {
         Self { buffer }
     }
@@ -52,7 +56,10 @@ impl<'a> NPBufferReader<'a> {
         if magic != b"NP\0" {
             return Err(Error::new(
                 ErrorKind::InvalidData,
-                format!("Magic bytes invalid. Should be \"NP\" and a null byte. Read: {} raw: {magic:?}", unsafe { std::str::from_utf8_unchecked(magic) }),
+                format!(
+                    "Magic bytes invalid. Should be \"NP\" and a null byte. Read: {} raw: {magic:?}",
+                        unsafe { std::str::from_utf8_unchecked(magic) }
+                ),
             ));
         }
 
@@ -71,6 +78,8 @@ impl<'a> NPBufferReader<'a> {
         let file_path =
             Some(unsafe { WideStr::from_ptr(str_bytes.as_ptr() as *const u16, path_len as usize) });
 
+        // Get the first marker, which denotes the start of the metadata structure. This might be two
+        // different fields, or incidental. I am not sure.
         let marker_one_location = br.find_bytes(&FIRST_MARKER_BYTES).ok_or(Error::new(
             ErrorKind::InvalidData,
             format!("Could not find marker bytes: {FIRST_MARKER_BYTES:02X?}"),
@@ -79,10 +88,10 @@ impl<'a> NPBufferReader<'a> {
         // Read first size and possibly some metadata which is currently unknown.
         br.read_bytes(marker_one_location)?;
 
-        // Get the main metadata
+        // Get the main metadata object (?)
         let some_metadata = br.read_t()?;
 
-        // Get the second marker, and make sure it's as expected.
+        // Read the second marker, and make sure it's what's expected.
         let marker_two = br.read_bytes(2)?;
         if marker_two != SECOND_MARKER_BYTES {
             return Err(Error::new(
@@ -94,7 +103,10 @@ impl<'a> NPBufferReader<'a> {
             ));
         }
 
-        // Find the third marker.
+        // Find the third marker, which denotes the end of the two unknown sizes. I have noticed these
+        // sizes are sometimes the same as the buffer and sometimes not the same. They might also be
+        // different sizes (as in bytes) than the main text buffer size. They can also both be 0 for
+        // some reason.
         let marker_three_location = br.find_bytes(&THIRD_MARKER_BYTES).ok_or(Error::new(
             ErrorKind::InvalidData,
             format!("Could not find marker bytes: {THIRD_MARKER_BYTES:02X?}"),
@@ -102,28 +114,38 @@ impl<'a> NPBufferReader<'a> {
 
         // The third marker is after 2 encoded sizes, which should be the same size as the size of the
         // text buffer. This might break, in some scenarios, as sometimes the size is different. I have
-        // to check it out a bit more.
+        // to check it out a bit more. When the two previous sizes are 0, the value of `marker_three_location`
+        // is 2, and the text buffer size should also be 2. I am not sure how this happens, so I am
+        // sure this is going to fail sometime.
         let size_of_encoded_size = if marker_three_location > 2 {
             marker_three_location / 2
         } else {
             marker_three_location
         };
 
-        // Advance over the u32 marker we found.
+        // Advance over the third marker we found.
         br.read_bytes(marker_three_location + THIRD_MARKER_BYTES.len())?;
 
-        // Get the bytes that represent the size of the text buffer
+        // Get the bytes that represent the size of the text buffer and decode the size.
         let size_bytes = br.read_bytes(size_of_encoded_size)?;
         let buffer_size = read_cursed_size_format(size_bytes)?;
 
-        // Get the text buffer
-        let text_buffer = br.read_bytes(buffer_size)?;
+        // The text buffer should be right after the final size buffer we just read.
+        let text_buffer = br.read_bytes(buffer_size * 2)?;
         let text_buffer =
             unsafe { WideStr::from_ptr(text_buffer.as_ptr() as *const u16, buffer_size) };
         let footer = br.read_t()?;
 
+        // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
+        // and how many.
         if br.len() != 0 {
-            println!("Please report on GH issues: Bytes still remaining in the buffer:\nremaining: {}\nbytes: {:?}", br.len(), br.get_remaining());
+            println!(
+                "Please report on GH issues: Bytes still remaining in the buffer:\n\
+            remaining: {}\n\
+            bytes: {:?}",
+                br.len(),
+                br.get_remaining()
+            );
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
@@ -137,7 +159,9 @@ impl<'a> NPBufferReader<'a> {
         ))
     }
 }
-
+/// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
+/// as `i8::MAX`, but the carry bytes all have the sign bit set. I wonder if this is for them to decode
+/// in order?
 fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
     if size_buffer.len() > 2 {
         return Err(Error::new(
@@ -147,23 +171,27 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
         ));
     }
 
-    let first_byte = size_buffer[0] as usize;
+    let first_byte = get_real_value(size_buffer[0] as usize);
     if size_buffer.len() == 1 {
         return Ok(first_byte);
     }
 
-    let iter = size_buffer[1] as usize;
+    let iter = get_real_value(size_buffer[1] as usize);
     let initial_val = MAX_VAL * iter;
-    let size = initial_val + iter + (first_byte & MAX_VAL);
+    let size = initial_val + iter + first_byte;
 
     Ok(size)
+}
+
+fn get_real_value(value: usize) -> usize {
+    value & MAX_VAL
 }
 
 #[cfg(test)]
 mod tests {
     use crate::NPBufferReader;
 
-    const BUFFER_PATH: &str = r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\d6a2f0f1-e0d0-4998-8fdd-b06385c1b332.bin";
+    const BUFFER_PATH: &str = r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\1357df91-87b1-4f96-9324-920bb2aece4a.bin";
     #[test]
     fn it_works() {
         let buffer = std::fs::read(BUFFER_PATH).unwrap();
@@ -171,6 +199,7 @@ mod tests {
         let refs = np.get_refs().unwrap();
 
         println!("{:?}", refs.get_path().unwrap_or_default());
+        println!("{}", refs.get_buffer().len());
         println!("{:?}", refs.get_buffer());
     }
 }
