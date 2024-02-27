@@ -12,20 +12,20 @@ pub struct NPBufferReader<'a> {
 #[allow(unused)]
 pub struct NPRefs<'a> {
     file_path: Option<&'a WideStr>,
-    some_data: &'a [u8; SIZE_OF_SOME_STRUCTURE],
+    some_metadata: &'a [u8; SIZE_OF_METADATA_STRUCTURE],
     text_buffer: &'a WideStr,
     footer: &'a [u8; FOOTER_SIZE],
 }
 impl<'a> NPRefs<'a> {
     pub fn new(
         file_path: Option<&'a WideStr>,
-        some_data: &'a [u8; SIZE_OF_SOME_STRUCTURE],
+        some_metadata: &'a [u8; SIZE_OF_METADATA_STRUCTURE],
         text_buffer: &'a WideStr,
         footer: &'a [u8; FOOTER_SIZE],
     ) -> NPRefs<'a> {
         Self {
             file_path,
-            some_data,
+            some_metadata,
             text_buffer,
             footer,
         }
@@ -80,7 +80,7 @@ impl<'a> NPBufferReader<'a> {
         br.read_bytes(marker_one_location)?;
 
         // Get the main metadata
-        let some_data = br.read_t()?;
+        let some_metadata = br.read_t()?;
 
         // Get the second marker, and make sure it's as expected.
         let marker_two = br.read_bytes(2)?;
@@ -127,7 +127,7 @@ impl<'a> NPBufferReader<'a> {
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
-        Ok(NPRefs::new(file_path, some_data, text_buffer, footer))
+        Ok(NPRefs::new(file_path, some_metadata, text_buffer, footer))
     }
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath
     fn read_unsaved_buffer(&self, _br: BufferReader) -> std::io::Result<NPRefs> {
@@ -143,7 +143,7 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
         return Err(Error::new(
             ErrorKind::Unsupported,
             "Bold of you to think I know a good algorithm to decode more than 2 bytes of this \
-            crap. It's a miracle I got this far. I curse you, Microsoft. 10,000 years!",
+            crap. It's a miracle I got this far. I curse you, Microsoft! 10,000 years!",
         ));
     }
 
