@@ -36,7 +36,7 @@ fn main() {
 }
 ```
 
-## How can I contribute
+## How can I contribute?
 Open a github issue, or message me on discord. Name is `Nordgaren`. GitHub issues is easier. If I don't get to you on Discord
 you can @ me in any shared server we have. I am in John Hammonds Discord. You can also try e-mailing me at `nordgarentv@gmail.com`
 
