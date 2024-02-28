@@ -17,7 +17,7 @@ pub struct NPRefs<'a> {
     footer: &'a [u8; FOOTER_SIZE],
 }
 impl<'a> NPRefs<'a> {
-    /// Returns a new NPRefs object containing the provided refs.
+    /// Returns a new `NPRefs` object containing the provided refs.
     pub fn new(
         file_path: Option<&'a WideStr>,
         some_metadata: &'a [u8; SIZE_OF_METADATA_STRUCTURE],
@@ -42,7 +42,7 @@ impl<'a> NPRefs<'a> {
 }
 
 impl<'a> NPBufferReader<'a> {
-    /// Returns a new NPBufferReader that contains the provided buffer.
+    /// Returns a new `NPBufferReader` that contains the provided buffer.
     pub fn new(buffer: &'a [u8]) -> Self {
         Self { buffer }
     }
