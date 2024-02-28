@@ -36,7 +36,7 @@ impl<'a> NPBufferReader<'a> {
             let mut byte = br.peek_byte(count)?;
             count += 1;
 
-            if byte & SIGN_BIT != 0 {
+            if byte & SIGN_BIT == 0 {
                 break;
             }
         }
