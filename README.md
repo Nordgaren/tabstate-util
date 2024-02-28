@@ -47,5 +47,7 @@ notepad makes. I have generated some unsaved tab buffers, and started the proces
 
 Also shout out to John Hammond who told me the unsaved buffers are different when notepad closes! Huzzah! WTH?!
 
+Also shoutout to [vswarte](https://github.com/vswarte) for misc reasons including figuring out my varint issue.  
+
 ## Todo
 > Figure out any inkling of how the unsaved buffers work before notepad has closed, so I can figure out how to read them.  
