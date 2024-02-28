@@ -1,8 +1,8 @@
 use std::io::{Error, ErrorKind};
 use buffer_reader::BufferReader;
 use widestring::WideStr;
-use crate::consts::{SIZE_START_MARKER, SIZE_END_MARKER, UNSUPPORTED_MESSAGE};
-use crate::{NPBufferReader, NPRefs, read_cursed_size_format};
+use crate::consts::{SIZE_START_MARKER, SIZE_END_MARKER, UNSUPPORTED_MESSAGE, SIGN_BIT};
+use crate::{NPBufferReader, NPRefs, decode_varint};
 
 impl<'a> NPBufferReader<'a> {
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
@@ -26,15 +26,21 @@ impl<'a> NPBufferReader<'a> {
             format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
         ))?;
 
-        // Also see saved buffer function for more details
-        let size_of_encoded_size = marker_three_location / 2;
-
         // Advance over the third marker we found.
         br.read_bytes(marker_three_location + SIZE_END_MARKER.len())?;
 
         // Get the bytes that represent the size of the text buffer and decode the size.
-        let size_bytes = br.read_bytes(size_of_encoded_size)?;
-        let buffer_size = read_cursed_size_format(size_bytes)?;
+        let mut count = 0;
+        let mut byte = br.peek_byte(count)?;
+
+        while byte & SIGN_BIT != 0 {
+            count += 1;
+            byte = br.peek_byte(count)?;
+        }
+
+        // Add 1 to count to account for the last byte in the varint
+        let size_bytes = br.read_bytes(count + 1)?;
+        let buffer_size = decode_varint(size_bytes)?;
         if buffer_size == 0 {
             return Err(Error::new(ErrorKind::Unsupported, UNSUPPORTED_MESSAGE));
         }

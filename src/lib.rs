@@ -25,7 +25,6 @@ pub struct NPRefs<'a> {
 }
 
 
-
 impl<'a> NPRefs<'a> {
     /// Returns a new `NPRefs` object containing the provided refs.
     pub fn new(
@@ -85,8 +84,9 @@ impl<'a> NPBufferReader<'a> {
         }
 
         Err(Error::new(
-            ErrorKind::InvalidData,
-            format!("Invalid file state. Expected 0 or 1. Got: {file_state}"),
+            ErrorKind::Unsupported,
+            format!("File has no data. Filestate should be 1 or 0 {file_state}. There are likely \
+            this many bytes "),
         ))
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
@@ -141,23 +141,21 @@ impl<'a> NPBufferReader<'a> {
             format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
         ))?;
 
-        // The third marker is after 2 encoded sizes, which should be the same size as the size of the
-        // text buffer. This might break, in some scenarios, as sometimes the size is different. I have
-        // to check it out a bit more. When the two previous sizes are 0, the value of `marker_three_location`
-        // is 2, and the text buffer size should also be 2. I am not sure how this happens, so I am
-        // sure this is going to fail sometime.
-        let size_of_encoded_size = if marker_three_location > 2 {
-            marker_three_location / 2
-        } else {
-            marker_three_location
-        };
-
         // Advance over the third marker we found.
         br.read_bytes(marker_three_location + SIZE_END_MARKER.len())?;
 
         // Get the bytes that represent the size of the text buffer and decode the size.
-        let size_bytes = br.read_bytes(size_of_encoded_size)?;
-        let buffer_size = read_cursed_size_format(size_bytes)?;
+        let mut count = 0;
+        let mut byte = br.peek_byte(count)?;
+
+        while byte & SIGN_BIT != 0 {
+            count += 1;
+            byte = br.peek_byte(count)?;
+        }
+
+        // Add 1 to count to account for the last byte in the varint
+        let size_bytes = br.read_bytes(count + 1)?;
+        let buffer_size = decode_varint(size_bytes)?;
 
         // The text buffer should be right after the final size buffer we just read.
         let text_buffer = br.read_bytes(buffer_size * 2)?;
@@ -182,6 +180,27 @@ impl<'a> NPBufferReader<'a> {
     }
 }
 
+/// Decodes a varint from the provided bytes
+fn decode_varint(size_buffer: &[u8]) -> std::io::Result<usize> {
+    if size_buffer.is_empty() {
+        return Err(Error::new(
+            ErrorKind::InvalidData,
+            "size buffer cannot be of length 0",
+        ));
+    }
+
+    let mut val = 0;
+    // We strip the sign bit off and bit shift the value to the right by 7 * i (since each byte only holds
+    // 7 bits of data and this is little endian, so the byte furthest to the left is the least significant byte.
+    for i in 0..size_buffer.len() {
+        let num = (size_buffer[i] & MAX_VAL) as usize;
+        val |= num << (7 * i);
+    }
+
+    Ok(val)
+}
+
+/// # Leaving this for the funny
 /// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
 /// as `i8::MAX`, but the carry bytes all have the sign bit set. I wonder if this is for them to decode
 /// in order?
@@ -194,69 +213,28 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
         ));
     }
 
-    if size_buffer.is_empty() {
-        if size_buffer.len() > 2 {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                "size_buffer cannot be of length 0",
-            ));
-        }
-    }
-
-    let last_index = size_buffer.len() - 1;
-    let last_byte = get_real_value(size_buffer[last_index]);
-    if size_buffer.len() == 1 {
-        return Ok(last_byte);
-    }
-
-    let mut val = 0;
-
-    for i in 0..last_index {
-        let num = get_real_value(size_buffer[i + 1]);
-        val += (num * MAX_VAL) + get_real_value(size_buffer[i]) + num;
-    }
-
-    Ok(val)
-}
-
-/// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
-/// as `i8::MAX`, but the carry bytes all have the sign bit set. I wonder if this is for them to decode
-/// in order?
-fn read_cursed_size_format_old(size_buffer: &[u8]) -> std::io::Result<usize> {
-    if size_buffer.len() > 2 {
-        return Err(Error::new(
-            ErrorKind::Unsupported,
-            "Bold of you to think I know a good algorithm to decode more than 2 bytes of this \
-            crap. It's a miracle I got this far. I curse you, Microsoft! 10,000 years!",
-        ));
-    }
-
     // Each byte except the last one in the size buffer has the sign bit set. It might be an indicator
     // that the byte is a carry over from the next byte, and there is probably a formula to calculate
     // the size value using each carry byte, but I am not a mathematician, so idk off the top of my head.
-    let first_byte = get_real_value(size_buffer[0]);
+    let first_byte = (size_buffer[0] & MAX_VAL) as usize;
     if size_buffer.len() == 1 {
-        return Ok(first_byte);
+        return Ok(first_byte as usize);
     }
 
     // Since we are only doing 2 bytes, we hard code the last one for now. We need to multiply the
     // max value by this number and then add the first bytes real value to that, as well as the value
     // of the iterator itself. Yea, idk.
-    let iter = get_real_value(size_buffer[1]);
-    let initial_val = MAX_VAL * iter;
-    let size = initial_val + iter + first_byte;
+    let iter = size_buffer[1] & MAX_VAL;
+    let initial_val = (MAX_VAL * iter) as usize;
+    let size = initial_val + iter as usize + first_byte;
 
     Ok(size)
 }
 
-#[inline(always)]
-fn get_real_value(value: u8) -> usize {
-    value as usize & MAX_VAL
-}
 
 #[cfg(test)]
 mod tests {
-    use crate::consts::UNSUPPORTED_MESSAGE;
+    use std::io::ErrorKind;
     use crate::NPBufferReader;
 
     const BUFFER_PATH: &str = concat!(
@@ -298,8 +276,8 @@ mod tests {
                 Err(e) => e,
             };
             let e_string = error.to_string();
-            match &e_string[..] {
-                UNSUPPORTED_MESSAGE => continue,
+            match error.kind() {
+                ErrorKind::Unsupported => {}
                 _ => {
                     println!("{path:?}");
                     println!("{error}");
