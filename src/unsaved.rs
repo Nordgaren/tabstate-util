@@ -23,7 +23,7 @@ impl<'a> NPBufferReader<'a> {
         // See saved buffer function for more details
         let marker_three_location = br.find_bytes(&SIZE_END_MARKER).ok_or(Error::new(
             ErrorKind::InvalidData,
-            format!("Could not find marker bytes: {THIRD_MARKER_BYTES:02X?}"),
+            format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
         ))?;
 
         // Also see saved buffer function for more details

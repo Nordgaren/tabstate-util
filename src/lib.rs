@@ -1,10 +1,14 @@
 mod consts;
 mod unsaved;
+mod metadata;
+mod footer;
 
 use crate::consts::*;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
+use crate::footer::TabStateFooter;
+use crate::metadata::TabStateMetadata;
 
 /// A structure that parses the Notepad buffer data.
 pub struct NPBufferReader<'a> {
@@ -15,18 +19,20 @@ pub struct NPBufferReader<'a> {
 #[allow(unused)]
 pub struct NPRefs<'a> {
     file_path: Option<&'a WideStr>,
-    some_metadata: Option<&'a [u8; SIZE_OF_METADATA_STRUCTURE]>,
+    some_metadata: Option<&'a TabStateMetadata>,
     text_buffer: &'a WideStr,
-    footer: &'a [u8; FOOTER_SIZE],
+    footer: &'a TabStateFooter,
 }
+
+
 
 impl<'a> NPRefs<'a> {
     /// Returns a new `NPRefs` object containing the provided refs.
     pub fn new(
         file_path: Option<&'a WideStr>,
-        some_metadata: Option<&'a [u8; SIZE_OF_METADATA_STRUCTURE]>,
+        some_metadata: Option<&'a TabStateMetadata>,
         text_buffer: &'a WideStr,
-        footer: &'a [u8; FOOTER_SIZE],
+        footer: &'a TabStateFooter,
     ) -> NPRefs<'a> {
         Self {
             file_path,
@@ -93,16 +99,26 @@ impl<'a> NPBufferReader<'a> {
 
         // Get the first marker, which denotes the start of the metadata structure. This might be two
         // different fields, or incidental. I am not sure.
-        let marker_one_location = br.find_bytes(&FIRST_MARKER_BYTES).ok_or(Error::new(
+        let marker_one_location = br.find_bytes(&FIRST_MARKER_BYTE).ok_or(Error::new(
             ErrorKind::InvalidData,
-            format!("Could not find marker bytes: {FIRST_MARKER_BYTES:02X?}"),
+            format!("Could not find marker bytes: {FIRST_MARKER_BYTE:02X?}"),
         ))?;
 
-        // Read first size and possibly some metadata which is currently unknown.
+        // Read first size and possibly some ohter metadata which is currently unknown.
         br.read_bytes(marker_one_location)?;
 
         // Get the main metadata object (?)
-        let some_metadata = Some(br.read_t()?);
+        let some_metadata = br.read_t::<TabStateMetadata>()?;
+
+        // The metadata structure includes the 0x5 marker and the variant. The variant is the second
+        // byte.
+        let marker_variant = &some_metadata.variant;
+        if !FIRST_MARKER_VARIANTS.contains(marker_variant) {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                format!("Unknown file variant. Expected one of: {FIRST_MARKER_VARIANTS:?}. Got: {:X}", *marker_variant),
+            ));
+        }
 
         // Read the second marker, and make sure it's what's expected.
         let marker_two = br.read_bytes(2)?;
@@ -122,7 +138,7 @@ impl<'a> NPBufferReader<'a> {
         // some reason.
         let marker_three_location = br.find_bytes(&SIZE_END_MARKER).ok_or(Error::new(
             ErrorKind::InvalidData,
-            format!("Could not find marker bytes: {THIRD_MARKER_BYTES:02X?}"),
+            format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
         ))?;
 
         // The third marker is after 2 encoded sizes, which should be the same size as the size of the
@@ -162,7 +178,7 @@ impl<'a> NPBufferReader<'a> {
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
-        Ok(NPRefs::new(file_path, some_metadata, text_buffer, footer))
+        Ok(NPRefs::new(file_path, Some(some_metadata), text_buffer, footer))
     }
 }
 
@@ -255,3 +271,18 @@ mod tests {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
