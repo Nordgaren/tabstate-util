@@ -33,7 +33,7 @@ impl<'a> NPBufferReader<'a> {
         let mut count = 0;
 
         loop {
-            let mut byte = br.peek_byte(count)?;
+            let byte = br.peek_byte(count)?;
             count += 1;
 
             if byte & SIGN_BIT == 0 {

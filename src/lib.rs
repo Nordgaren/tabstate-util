@@ -148,7 +148,7 @@ impl<'a> NPBufferReader<'a> {
         let mut count = 0;
 
         loop {
-            let mut byte = br.peek_byte(count)?;
+            let byte = br.peek_byte(count)?;
             count += 1;
 
             if byte & SIGN_BIT == 0 {
@@ -206,6 +206,7 @@ fn decode_varint(size_buffer: &[u8]) -> std::io::Result<usize> {
 /// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
 /// as `i8::MAX`, but the carry bytes all have the sign bit set. I wonder if this is for them to decode
 /// in order?
+#[allow(unused)]
 fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
     if size_buffer.len() > 2 {
         return Err(Error::new(
@@ -277,7 +278,6 @@ mod tests {
                 Ok(_) => continue,
                 Err(e) => e,
             };
-            let e_string = error.to_string();
             match error.kind() {
                 ErrorKind::Unsupported => {}
                 _ => {
