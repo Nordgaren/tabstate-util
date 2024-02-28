@@ -9,7 +9,8 @@ Lmao
 ## How do I use it?
 The tab buffers are located in `%localappdata%\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState`.
 
-Thank you to @nas_bench and @_JohnHammond for cluing me into this location.
+Thank you to [@nas_bench](https://twitter.com/nas_bench) and [@_JohnHammond](https://twitter.com/_JohnHammond) for cluing 
+me into this location. [nas bench tweet](https://twitter.com/nas_bench/status/1725658060104913019).  
 
 Read one of the files and pass it in to `NPBufferReader::new()` as a slice. Call the `get_refs()` method to get references 
 to parts of the buffer.
