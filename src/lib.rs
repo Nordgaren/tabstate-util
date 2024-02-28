@@ -1,14 +1,14 @@
 mod consts;
-mod unsaved;
-mod metadata;
 mod footer;
+mod metadata;
+mod unsaved;
 
 use crate::consts::*;
+use crate::footer::TabStateFooter;
+use crate::metadata::TabStateMetadata;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
-use crate::footer::TabStateFooter;
-use crate::metadata::TabStateMetadata;
 
 /// A structure that parses the Notepad buffer data.
 pub struct NPBufferReader<'a> {
@@ -23,7 +23,6 @@ pub struct NPRefs<'a> {
     text_buffer: &'a WideStr,
     footer: &'a TabStateFooter,
 }
-
 
 impl<'a> NPRefs<'a> {
     /// Returns a new `NPRefs` object containing the provided refs.
@@ -85,8 +84,10 @@ impl<'a> NPBufferReader<'a> {
 
         Err(Error::new(
             ErrorKind::Unsupported,
-            format!("File has no data. Filestate should be 1 or 0 {file_state}. There are likely \
-            this many bytes "),
+            format!(
+                "File has no data. File state should be 1 or 0 {file_state}. There are likely \
+            this many bytes "
+            ),
         ))
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
@@ -116,7 +117,10 @@ impl<'a> NPBufferReader<'a> {
         if !FIRST_MARKER_VARIANTS.contains(marker_variant) {
             return Err(Error::new(
                 ErrorKind::InvalidData,
-                format!("Unknown file variant. Expected one of: {FIRST_MARKER_VARIANTS:?}. Got: {:X}", *marker_variant),
+                format!(
+                    "Unknown file variant. Expected one of: {FIRST_MARKER_VARIANTS:?}. Got: {:X}",
+                    *marker_variant
+                ),
             ));
         }
 
@@ -178,7 +182,12 @@ impl<'a> NPBufferReader<'a> {
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
-        Ok(NPRefs::new(file_path, Some(some_metadata), text_buffer, footer))
+        Ok(NPRefs::new(
+            file_path,
+            Some(some_metadata),
+            text_buffer,
+            footer,
+        ))
     }
 }
 
@@ -234,16 +243,15 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
     Ok(size)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use std::io::ErrorKind;
     use crate::NPBufferReader;
+    use std::io::ErrorKind;
 
     const BUFFER_PATH: &str = concat!(
-    env!("localappdata"),
-    r"\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\",
-    "0c07e304-0604-4438-941d-0977da045fd9.bin" // You should be able to just change this file name.
+        env!("localappdata"),
+        r"\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\",
+        "0c07e304-0604-4438-941d-0977da045fd9.bin" // You should be able to just change this file name.
     );
 
     /// Should not panic
@@ -261,7 +269,10 @@ mod tests {
     #[test]
     fn read_tabstate_folder() {
         let env = env!("localappdata");
-        let files = std::fs::read_dir(&format!(r"{env}\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState")).unwrap();
+        let files = std::fs::read_dir(&format!(
+            r"{env}\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState"
+        ))
+        .unwrap();
         for file in files {
             let path = match file {
                 Ok(p) => p,
@@ -288,18 +299,3 @@ mod tests {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

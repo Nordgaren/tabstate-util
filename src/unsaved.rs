@@ -1,8 +1,8 @@
-use std::io::{Error, ErrorKind};
+use crate::consts::{SIGN_BIT, SIZE_END_MARKER, SIZE_START_MARKER};
+use crate::{decode_varint, NPBufferReader, NPRefs};
 use buffer_reader::BufferReader;
+use std::io::{Error, ErrorKind};
 use widestring::WideStr;
-use crate::consts::{SIZE_START_MARKER, SIZE_END_MARKER, SIGN_BIT};
-use crate::{NPBufferReader, NPRefs, decode_varint};
 
 impl<'a> NPBufferReader<'a> {
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
@@ -65,7 +65,6 @@ impl<'a> NPBufferReader<'a> {
             );
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
-
 
         Ok(NPRefs::new(None, None, text_buffer, footer))
     }
