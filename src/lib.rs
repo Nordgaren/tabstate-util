@@ -71,6 +71,7 @@ impl<'a> NPBufferReader<'a> {
         self.read_unsaved_buffer(br)
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
+    /// Unsaved buffers are currently unsupported.
     fn read_saved_buffer(&self, br: BufferReader<'a>) -> std::io::Result<NPRefs> {
         // Get the file path.
         let path_len = br.read_byte()?;
@@ -151,7 +152,8 @@ impl<'a> NPBufferReader<'a> {
 
         Ok(NPRefs::new(file_path, some_metadata, text_buffer, footer))
     }
-    /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath
+    /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
+    /// unsupported.
     fn read_unsaved_buffer(&self, _br: BufferReader) -> std::io::Result<NPRefs> {
         Err(Error::new(
             ErrorKind::Unsupported,
@@ -193,13 +195,37 @@ mod tests {
 
     const BUFFER_PATH: &str = r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\1357df91-87b1-4f96-9324-920bb2aece4a.bin";
     #[test]
-    fn it_works() {
+    fn read_tabstate() {
         let buffer = std::fs::read(BUFFER_PATH).unwrap();
         let np = NPBufferReader::new(&buffer[..]);
         let refs = np.get_refs().unwrap();
 
         println!("{:?}", refs.get_path().unwrap_or_default());
-        println!("{}", refs.get_buffer().len());
         println!("{:?}", refs.get_buffer());
+    }
+
+    #[test]
+    fn read_tabstate_folder() {
+
+        let files =std::fs::read_dir(r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState").unwrap();
+
+        for file in files {
+            let path = match file {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
+
+            let buffer = std::fs::read(BUFFER_PATH).unwrap();
+            let np = NPBufferReader::new(&buffer[..]);
+            let refs = match np.get_refs() {
+                Ok(r) => r,
+                Err(_) => continue,
+            };
+
+            println!("{:?}", refs.get_path().unwrap_or_default());
+            println!("{:?}", refs.get_buffer());
+
+        }
+
     }
 }
