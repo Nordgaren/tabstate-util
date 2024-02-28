@@ -1,26 +1,30 @@
 mod consts;
+mod unsaved;
 
 use crate::consts::*;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
+
 /// A structure that parses the Notepad buffer data.
 pub struct NPBufferReader<'a> {
     buffer: &'a [u8],
 }
+
 /// A structure tht holds references to the data in a Notepad buffer.
 #[allow(unused)]
 pub struct NPRefs<'a> {
     file_path: Option<&'a WideStr>,
-    some_metadata: &'a [u8; SIZE_OF_METADATA_STRUCTURE],
+    some_metadata: Option<&'a [u8; SIZE_OF_METADATA_STRUCTURE]>,
     text_buffer: &'a WideStr,
     footer: &'a [u8; FOOTER_SIZE],
 }
+
 impl<'a> NPRefs<'a> {
     /// Returns a new `NPRefs` object containing the provided refs.
     pub fn new(
         file_path: Option<&'a WideStr>,
-        some_metadata: &'a [u8; SIZE_OF_METADATA_STRUCTURE],
+        some_metadata: Option<&'a [u8; SIZE_OF_METADATA_STRUCTURE]>,
         text_buffer: &'a WideStr,
         footer: &'a [u8; FOOTER_SIZE],
     ) -> NPRefs<'a> {
@@ -70,9 +74,14 @@ impl<'a> NPBufferReader<'a> {
         let file_state = br.read_byte()?;
         if file_state == FILE_STATE_SAVED {
             return self.read_saved_buffer(br);
+        } else if file_state == FILE_STATE_UNSAVED {
+            return self.read_unsaved_buffer(br);
         }
 
-        self.read_unsaved_buffer(br)
+        Err(Error::new(
+            ErrorKind::InvalidData,
+            format!("Invalid file state. Expected 0 or 1. Got: {file_state}"),
+        ))
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
     /// Unsaved buffers are currently unsupported.
@@ -94,7 +103,7 @@ impl<'a> NPBufferReader<'a> {
         br.read_bytes(marker_one_location)?;
 
         // Get the main metadata object (?)
-        let some_metadata = br.read_t()?;
+        let some_metadata = Some(br.read_t()?);
 
         // Read the second marker, and make sure it's what's expected.
         let marker_two = br.read_bytes(2)?;
@@ -156,11 +165,6 @@ impl<'a> NPBufferReader<'a> {
 
         Ok(NPRefs::new(file_path, some_metadata, text_buffer, footer))
     }
-    /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
-    /// unsupported.
-    fn read_unsaved_buffer(&self, _br: BufferReader) -> std::io::Result<NPRefs<'a>> {
-        Err(Error::new(ErrorKind::Unsupported, UNSUPPORTED_MESSAGE))
-    }
 }
 
 /// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
@@ -192,6 +196,7 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
 
     Ok(size)
 }
+
 #[inline(always)]
 fn get_real_value(value: usize) -> usize {
     value & MAX_VAL
@@ -205,7 +210,7 @@ mod tests {
     const BUFFER_PATH: &str = concat!(
     env!("localappdata"),
     r"\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\",
-    "1357df91-87b1-4f96-9324-920bb2aece4a.bin" // You should be able to just change this file name.
+    "0c07e304-0604-4438-941d-0977da045fd9.bin" // You should be able to just change this file name.
     );
 
     /// Should not panic
