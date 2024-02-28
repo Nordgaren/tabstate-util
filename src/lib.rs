@@ -236,19 +236,18 @@ mod tests {
                 Err(_) => continue,
             };
 
-            match np.get_refs() {
-                Ok(_) => {}
-                Err(e) => {
-                    let e_string = e.to_string();
-                    match &e_string[..] {
-                        UNSUPPORTED_MESSAGE => continue,
-                        _ => {
-                            println!("{path:?}");
-                            println!("{e}");
-                        }
-                    }
-                }
+            let error = match np.get_refs() {
+                Ok(_) => continue,
+                Err(e) => e,
             };
+            let e_string = error.to_string();
+            match &e_string[..] {
+                UNSUPPORTED_MESSAGE => continue,
+                _ => {
+                    println!("{path:?}");
+                    println!("{error}");
+                }
+            }
         }
     }
 }
