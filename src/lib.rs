@@ -175,18 +175,24 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
         ));
     }
 
+    // Each byte except the last one in the size buffer has the sign bit set. It might be an indicator
+    // that the byte is a carry over from the next byte, and there is probably a formula to calculate
+    // the size value using each carry byte, but I am not a mathematician, so idk off the top of my head.
     let first_byte = get_real_value(size_buffer[0] as usize);
     if size_buffer.len() == 1 {
         return Ok(first_byte);
     }
 
+    // Since we are only doing 2 bytes, we hard code the last one for now. We need to multiply the
+    // max value by this number and then add the first bytes real value to that, as well as the value
+    // of the iterator itself. Yea, idk.
     let iter = get_real_value(size_buffer[1] as usize);
     let initial_val = MAX_VAL * iter;
     let size = initial_val + iter + first_byte;
 
     Ok(size)
 }
-
+#[inline(always)]
 fn get_real_value(value: usize) -> usize {
     value & MAX_VAL
 }
