@@ -202,7 +202,11 @@ mod tests {
     use crate::consts::UNSUPPORTED_MESSAGE;
     use crate::NPBufferReader;
 
-    const BUFFER_PATH: &str = r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\1357df91-87b1-4f96-9324-920bb2aece4a.bin";
+    const BUFFER_PATH: &str = concat!(
+    env!("localappdata"),
+    r"\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\",
+    "1357df91-87b1-4f96-9324-920bb2aece4a.bin" // You should be able to just change this file name.
+    );
 
     /// Should not panic
     #[test]
@@ -218,8 +222,8 @@ mod tests {
     /// Prints out error message if something abnormal happens.
     #[test]
     fn read_tabstate_folder() {
-        let files = std::fs::read_dir(r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState").unwrap();
-
+        let env = env!("localappdata");
+        let files = std::fs::read_dir(&format!(r"{env}\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState")).unwrap();
         for file in files {
             let path = match file {
                 Ok(p) => p,
