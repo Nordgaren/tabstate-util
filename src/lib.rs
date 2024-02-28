@@ -194,10 +194,47 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
         ));
     }
 
+    if size_buffer.is_empty() {
+        if size_buffer.len() > 2 {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "size_buffer cannot be of length 0",
+            ));
+        }
+    }
+
+    let last_index = size_buffer.len() - 1;
+    let last_byte = get_real_value(size_buffer[last_index]);
+    if size_buffer.len() == 1 {
+        return Ok(last_byte);
+    }
+
+    let mut val = 0;
+
+    for i in 0..last_index {
+        let num = get_real_value(size_buffer[i + 1]);
+        val += (num * MAX_VAL) + get_real_value(size_buffer[i]) + num;
+    }
+
+    Ok(val)
+}
+
+/// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
+/// as `i8::MAX`, but the carry bytes all have the sign bit set. I wonder if this is for them to decode
+/// in order?
+fn read_cursed_size_format_old(size_buffer: &[u8]) -> std::io::Result<usize> {
+    if size_buffer.len() > 2 {
+        return Err(Error::new(
+            ErrorKind::Unsupported,
+            "Bold of you to think I know a good algorithm to decode more than 2 bytes of this \
+            crap. It's a miracle I got this far. I curse you, Microsoft! 10,000 years!",
+        ));
+    }
+
     // Each byte except the last one in the size buffer has the sign bit set. It might be an indicator
     // that the byte is a carry over from the next byte, and there is probably a formula to calculate
     // the size value using each carry byte, but I am not a mathematician, so idk off the top of my head.
-    let first_byte = get_real_value(size_buffer[0] as usize);
+    let first_byte = get_real_value(size_buffer[0]);
     if size_buffer.len() == 1 {
         return Ok(first_byte);
     }
@@ -205,7 +242,7 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
     // Since we are only doing 2 bytes, we hard code the last one for now. We need to multiply the
     // max value by this number and then add the first bytes real value to that, as well as the value
     // of the iterator itself. Yea, idk.
-    let iter = get_real_value(size_buffer[1] as usize);
+    let iter = get_real_value(size_buffer[1]);
     let initial_val = MAX_VAL * iter;
     let size = initial_val + iter + first_byte;
 
@@ -213,8 +250,8 @@ fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
 }
 
 #[inline(always)]
-fn get_real_value(value: usize) -> usize {
-    value & MAX_VAL
+fn get_real_value(value: u8) -> usize {
+    value as usize & MAX_VAL
 }
 
 #[cfg(test)]
