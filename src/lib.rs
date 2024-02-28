@@ -65,11 +65,13 @@ impl<'a> NPBufferReader<'a> {
 
         let magic = br.read_bytes(3)?;
 
+        // I know that the magic is technically just NP, and that the third byte can change, but if
+        // it isn't I am going to return an error, anyway, so let's just check it here.
         if magic != b"NP\0" {
             return Err(Error::new(
                 ErrorKind::InvalidData,
                 format!(
-                    "Magic bytes invalid. Should be \"NP\" and a null byte. Read: {} raw: {magic:?}",
+                    "Magic bytes invalid. Should be \"NP\" and a null byte. Read: \"{}\" raw: {magic:?}",
                     unsafe { std::str::from_utf8_unchecked(magic) }
                 ),
             ));
