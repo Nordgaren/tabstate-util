@@ -31,15 +31,17 @@ impl<'a> NPBufferReader<'a> {
 
         // Get the bytes that represent the size of the text buffer and decode the size.
         let mut count = 0;
-        let mut byte = br.peek_byte(count)?;
 
-        while byte & SIGN_BIT != 0 {
+        loop {
+            let mut byte = br.peek_byte(count)?;
             count += 1;
-            byte = br.peek_byte(count)?;
+
+            if byte & SIGN_BIT != 0 {
+                break;
+            }
         }
 
-        // Add 1 to count to account for the last byte in the varint
-        let size_bytes = br.read_bytes(count + 1)?;
+        let size_bytes = br.read_bytes(count)?;
         let buffer_size = decode_varint(size_bytes)?;
         if buffer_size == 0 {
             return Err(Error::new(ErrorKind::Unsupported, UNSUPPORTED_MESSAGE));
