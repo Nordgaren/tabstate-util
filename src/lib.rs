@@ -202,7 +202,7 @@ fn decode_varint(size_buffer: &[u8]) -> std::io::Result<usize> {
 
     let mut val = 0;
     // We strip the sign bit off and bit shift the value to the right by 7 * i (since each byte only holds
-    // 7 bits of data and this is little endian, so the byte furthest to the left is the least significant byte.
+    // 7 bits of data and this is little endian, so the byte furthest to the left is the least significant byte.)
     for i in 0..size_buffer.len() {
         let num = (size_buffer[i] & MAX_VAL) as usize;
         val |= num << (7 * i);
