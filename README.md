@@ -1,4 +1,4 @@
-# notepad-buffer
+# tabstate-util
 A buffer reader for notepad TabState buffers.  
 > [!WARNING]
 > This project is in early development. Things may change. Sorry for any inconvenience.
