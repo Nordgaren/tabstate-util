@@ -84,7 +84,6 @@ impl<'a> NPBufferReader<'a> {
         ))
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
-    /// Unsaved buffers are currently unsupported.
     fn read_saved_buffer(&self, br: BufferReader<'a>) -> std::io::Result<NPRefs<'a>> {
         // Get the file path.
         let path_len = br.read_byte()?;
