@@ -85,8 +85,8 @@ impl<'a> NPBufferReader<'a> {
         Err(Error::new(
             ErrorKind::Unsupported,
             format!(
-                "File has no data. File state should be 1 or 0 {file_state}. There are likely \
-            this many bytes "
+                "File has no data. File state should be 1 or 0. There are likely \
+            this many bytes left in the buffer {file_state} + 5 bytes for the footer {}", br.len() + 1
             ),
         ))
     }
