@@ -1,7 +1,7 @@
 use std::io::{Error, ErrorKind};
 use buffer_reader::BufferReader;
 use widestring::WideStr;
-use crate::consts::{SIZE_START_MARKER, SIZE_END_MARKER, UNSUPPORTED_MESSAGE, SIGN_BIT};
+use crate::consts::{SIZE_START_MARKER, SIZE_END_MARKER, SIGN_BIT};
 use crate::{NPBufferReader, NPRefs, decode_varint};
 
 impl<'a> NPBufferReader<'a> {
@@ -44,7 +44,7 @@ impl<'a> NPBufferReader<'a> {
         let size_bytes = br.read_bytes(count)?;
         let buffer_size = decode_varint(size_bytes)?;
         if buffer_size == 0 {
-            return Err(Error::new(ErrorKind::Unsupported, UNSUPPORTED_MESSAGE));
+            return Err(Error::new(ErrorKind::Unsupported, "Buffer file has unknown size. The TabState buffer doesn't get the size of the buffer until Notepad has been \"closed\". Currently unsupported"));
         }
 
         // The text buffer should be right after the final size buffer we just read.
