@@ -121,7 +121,7 @@ impl<'a> NPBufferReader<'a> {
         // sizes are sometimes the same as the buffer and sometimes not the same. They might also be
         // different sizes (as in bytes) than the main text buffer size. They can also both be 0 for
         // some reason.
-        let marker_three_location = br.find_bytes(&THIRD_MARKER_BYTES).ok_or(Error::new(
+        let marker_three_location = br.find_bytes(&SIZE_END_MARKER).ok_or(Error::new(
             ErrorKind::InvalidData,
             format!("Could not find marker bytes: {THIRD_MARKER_BYTES:02X?}"),
         ))?;
@@ -138,7 +138,7 @@ impl<'a> NPBufferReader<'a> {
         };
 
         // Advance over the third marker we found.
-        br.read_bytes(marker_three_location + THIRD_MARKER_BYTES.len())?;
+        br.read_bytes(marker_three_location + SIZE_END_MARKER.len())?;
 
         // Get the bytes that represent the size of the text buffer and decode the size.
         let size_bytes = br.read_bytes(size_of_encoded_size)?;
