@@ -43,12 +43,16 @@ impl<'a> NPRefs<'a> {
 
 impl<'a> NPBufferReader<'a> {
     /// Returns a new `NPBufferReader` that contains the provided buffer.
-    pub fn new(buffer: &'a [u8]) -> Self {
-        Self { buffer }
+    pub fn new(buffer: &'a [u8]) -> std::io::Result<Self> {
+        if buffer.is_empty() {
+            return Err(Error::new(ErrorKind::InvalidData, "Buffer is empty."));
+        }
+
+        Ok(Self { buffer })
     }
     /// Get references to the individual parts of the Notepad buffer, like the filepath and the text
     /// buffer, as well as some unknown metadata.
-    pub fn get_refs(&self) -> std::io::Result<NPRefs> {
+    pub fn get_refs(&self) -> std::io::Result<NPRefs<'a>> {
         let br = BufferReader::new(self.buffer);
 
         let magic = br.read_bytes(3)?;
@@ -58,7 +62,7 @@ impl<'a> NPBufferReader<'a> {
                 ErrorKind::InvalidData,
                 format!(
                     "Magic bytes invalid. Should be \"NP\" and a null byte. Read: {} raw: {magic:?}",
-                        unsafe { std::str::from_utf8_unchecked(magic) }
+                    unsafe { std::str::from_utf8_unchecked(magic) }
                 ),
             ));
         }
@@ -72,7 +76,7 @@ impl<'a> NPBufferReader<'a> {
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
     /// Unsaved buffers are currently unsupported.
-    fn read_saved_buffer(&self, br: BufferReader<'a>) -> std::io::Result<NPRefs> {
+    fn read_saved_buffer(&self, br: BufferReader<'a>) -> std::io::Result<NPRefs<'a>> {
         // Get the file path.
         let path_len = br.read_byte()?;
         let str_bytes = br.read_bytes(path_len as usize * 2)?;
@@ -154,13 +158,11 @@ impl<'a> NPBufferReader<'a> {
     }
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
     /// unsupported.
-    fn read_unsaved_buffer(&self, _br: BufferReader) -> std::io::Result<NPRefs> {
-        Err(Error::new(
-            ErrorKind::Unsupported,
-            "Unsaved files are currently not supported by this reader.",
-        ))
+    fn read_unsaved_buffer(&self, _br: BufferReader) -> std::io::Result<NPRefs<'a>> {
+        Err(Error::new(ErrorKind::Unsupported, UNSUPPORTED_MESSAGE))
     }
 }
+
 /// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
 /// as `i8::MAX`, but the carry bytes all have the sign bit set. I wonder if this is for them to decode
 /// in order?
@@ -191,23 +193,26 @@ fn get_real_value(value: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use crate::consts::UNSUPPORTED_MESSAGE;
     use crate::NPBufferReader;
 
     const BUFFER_PATH: &str = r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\1357df91-87b1-4f96-9324-920bb2aece4a.bin";
+
+    /// Should not panic
     #[test]
     fn read_tabstate() {
         let buffer = std::fs::read(BUFFER_PATH).unwrap();
-        let np = NPBufferReader::new(&buffer[..]);
-        let refs = np.get_refs().unwrap();
+        let np = NPBufferReader::new(&buffer[..]).expect("Could not create ne NPBufferReader");
+        let _ = np.get_refs().unwrap();
 
-        println!("{:?}", refs.get_path().unwrap_or_default());
-        println!("{:?}", refs.get_buffer());
+        //println!("{:?}", refs.get_path().unwrap_or_default());
+        //println!("{:?}", refs.get_buffer());
     }
 
+    /// Prints out error message if something abnormal happens.
     #[test]
     fn read_tabstate_folder() {
-
-        let files =std::fs::read_dir(r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState").unwrap();
+        let files = std::fs::read_dir(r"C:\Users\Nordgaren\AppData\Local\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState").unwrap();
 
         for file in files {
             let path = match file {
@@ -215,17 +220,25 @@ mod tests {
                 Err(_) => continue,
             };
 
-            let buffer = std::fs::read(BUFFER_PATH).unwrap();
-            let np = NPBufferReader::new(&buffer[..]);
-            let refs = match np.get_refs() {
-                Ok(r) => r,
+            let buffer = std::fs::read(path.path()).unwrap();
+            let np = match NPBufferReader::new(&buffer[..]) {
+                Ok(np) => np,
                 Err(_) => continue,
             };
 
-            println!("{:?}", refs.get_path().unwrap_or_default());
-            println!("{:?}", refs.get_buffer());
-
+            match np.get_refs() {
+                Ok(_) => {}
+                Err(e) => {
+                    let e_string = e.to_string();
+                    match &e_string[..] {
+                        UNSUPPORTED_MESSAGE => continue,
+                        _ => {
+                            println!("{path:?}");
+                            println!("{e}");
+                        }
+                    }
+                }
+            };
         }
-
     }
 }

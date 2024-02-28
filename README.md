@@ -1,5 +1,7 @@
 # notepad-buffer
 A buffer reader for notepad TabState buffers.  
+> [!WARNING]
+> This project is in early development. Things may change. Sorry for any inconvenience.
 
 ## Does it work?
 Lmao
@@ -15,16 +17,20 @@ to parts of the buffer.
 There are some printlines for things I am not sure about, so if you see this print some extra lines in your console, please
 let me know, so I can check out what is wrong.
 
-The `NPBufferReader` type is there for the future. This type will handle other stuff, later, probably.
+The `NPBufferReader` type is there for the future. This type will handle other stuff, later, probably. Right now it just
+checks that you aren't passing in an empty buffer. I will probably change it to also check the magic bytes.
 
 ```rust
 
-#[test]
-fn it_works() {
-    let buffer = std::fs::read("P:/ath/to/notepad/tabstate/buffer.bin").unwrap();
-    let np = NPBufferReader::new(&buffer[..]);
-    let refs = np.get_refs().unwrap();
+fn get_tab_state_buffer(buffer: &[u8]) -> std::io::Result<NPRefs> {
+    let np = NPBufferReader::new(buffer)?;
+    np.get_refs()
+}
 
+fn main() {
+    let file = std::fs::read_dir(r"P:/ath/to/notepad/tabstate/buffer.bin").unwrap();
+    let refs = get_tab_state_buffer(&file[..]).expect("Could not read TabState buffer.");
+    
     println!("{:?}", refs.get_path().unwrap_or_default());
     println!("{:?}", refs.get_buffer());
 }
