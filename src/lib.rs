@@ -143,7 +143,7 @@ impl<'a> NPBufferReader<'a> {
 
         // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
         // and how many.
-        if br.len() != 0 {
+        if !br.is_empty() {
             println!(
                 "Please report on GH issues: Bytes still remaining in the buffer:\n\
             remaining: {}\n\
