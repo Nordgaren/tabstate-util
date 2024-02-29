@@ -7,6 +7,7 @@ use crate::consts::{FILE_STATE_SAVED, FILE_STATE_UNSAVED, FIRST_MARKER_BYTE, FIR
 use crate::footer::TabStateFooter;
 use crate::metadata::TabStateMetadata;
 use crate::refs::varint::VarIntRef;
+use crate::util;
 
 pub mod unsaved;
 
@@ -89,10 +90,10 @@ impl<'a> TabStateRefs<'a> {
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
     pub fn read_saved_buffer(br: BufferReader<'a>) -> std::io::Result<Self> {
         // Get the file path.
-        let path_len = br.read_byte()?;
-        let str_bytes = br.read_bytes(path_len as usize * 2)?;
-        let file_path =
-            Some(unsafe { WideStr::from_ptr(str_bytes.as_ptr() as *const u16, path_len as usize) });
+        let path_len = br.read_byte()? as usize;
+        let str_bytes = br.read_bytes(path_len * 2)?;
+        let file_path = unsafe { Some(util::wide_string_from_buffer(str_bytes, path_len)) };
+
 
         let unk_varint = VarIntRef::from_reader(&br)?;
 
@@ -156,8 +157,8 @@ impl<'a> TabStateRefs<'a> {
 
         // The text buffer should be right after the final size buffer we just read.
         let text_buffer = br.read_bytes(decoded_size * 2)?;
-        let text_buffer =
-            unsafe { WideStr::from_ptr(text_buffer.as_ptr() as *const u16, decoded_size) };
+        let text_buffer = util::wide_string_from_buffer(text_buffer, decoded_size);
+
         let footer = br.read_t()?;
 
         // Check that there are no bytes remaining in the buffer. If there are, print out the bytes

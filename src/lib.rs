@@ -2,6 +2,7 @@ pub mod consts;
 pub mod footer;
 pub mod metadata;
 pub mod refs;
+mod util;
 
 use crate::consts::*;
 use std::io::{Error, ErrorKind};

@@ -1,9 +1,9 @@
 use crate::consts::{SIZE_END_MARKER, SIZE_START_MARKER};
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
-use widestring::WideStr;
 use crate::refs::tabstate::TabStateRefs;
 use crate::refs::varint::VarIntRef;
+use crate::util;
 
 impl<'a> TabStateRefs<'a> {
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
@@ -47,8 +47,8 @@ impl<'a> TabStateRefs<'a> {
 
         // The text buffer should be right after the final size buffer we just read.
         let text_buffer = br.read_bytes(decoded_size * 2)?;
-        let text_buffer =
-            unsafe { WideStr::from_ptr(text_buffer.as_ptr() as *const u16, decoded_size) };
+        let text_buffer = util::wide_string_from_buffer(text_buffer, decoded_size);
+
         let footer = br.read_t()?;
 
         // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
