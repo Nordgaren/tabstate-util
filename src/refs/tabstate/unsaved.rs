@@ -1,13 +1,14 @@
-use crate::consts::{SIGN_BIT, SIZE_END_MARKER, SIZE_START_MARKER};
-use crate::{decode_varint, NPBufferReader, NPRefs};
+use crate::consts::{SIZE_END_MARKER, SIZE_START_MARKER};
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
+use crate::refs::tabstate::TabStateRefs;
+use crate::refs::varint::VarIntRef;
 
-impl<'a> NPBufferReader<'a> {
+impl<'a> TabStateRefs<'a> {
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
     /// unsupported if Notepad has not been closed since the tab was opened.
-    pub(crate) fn read_unsaved_buffer(&self, br: BufferReader<'a>) -> std::io::Result<NPRefs<'a>> {
+    pub(crate) fn read_unsaved_buffer(br: BufferReader<'a>) -> std::io::Result<TabStateRefs<'a>> {
         // Read the unsaved marker, and make sure it's what's expected.
         let marker = br.read_bytes(1)?;
         if marker != SIZE_START_MARKER {
@@ -20,37 +21,34 @@ impl<'a> NPBufferReader<'a> {
             ));
         }
 
-        // See saved buffer function for more details
-        let marker_three_location = br.find_bytes(&SIZE_END_MARKER).ok_or(Error::new(
-            ErrorKind::InvalidData,
-            format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
-        ))?;
+        let varint_two = VarIntRef::from_reader(&br)?;
+        let varint_three = VarIntRef::from_reader(&br)?;
 
-        // Advance over the third marker we found.
-        br.read_bytes(marker_three_location + SIZE_END_MARKER.len())?;
+        // Find the third marker, which denotes the end of the two unknown sizes. I have noticed these
+        // sizes are sometimes the same as the buffer and sometimes not the same. They might also be
+        // different sizes (as in bytes) than the main text buffer size. They can also both be 0 for
+        // some reason.
+        let marker_three = br.read_bytes(SIZE_END_MARKER.len())?;
 
-        // Get the bytes that represent the size of the text buffer and decode the size.
-        let mut count = 0;
+        if marker_three != SIZE_END_MARKER {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
+            ));
+        };
 
-        loop {
-            let byte = br.peek_byte(count)?;
-            count += 1;
 
-            if byte & SIGN_BIT == 0 {
-                break;
-            }
-        }
-
-        let size_bytes = br.read_bytes(count)?;
-        let buffer_size = decode_varint(size_bytes)?;
-        if buffer_size == 0 {
+        // Get the VarInt from the reader so we can decode it.
+        let buffer_size = VarIntRef::from_reader(&br)?;
+        let decoded_size = buffer_size.decode()?;
+        if decoded_size == 0 {
             return Err(Error::new(ErrorKind::Unsupported, "Buffer file has unknown size. The TabState buffer doesn't get the size of the buffer until Notepad has been \"closed\". Currently unsupported"));
         }
 
         // The text buffer should be right after the final size buffer we just read.
-        let text_buffer = br.read_bytes(buffer_size * 2)?;
+        let text_buffer = br.read_bytes(decoded_size * 2)?;
         let text_buffer =
-            unsafe { WideStr::from_ptr(text_buffer.as_ptr() as *const u16, buffer_size) };
+            unsafe { WideStr::from_ptr(text_buffer.as_ptr() as *const u16, decoded_size) };
         let footer = br.read_t()?;
 
         // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
@@ -66,6 +64,6 @@ impl<'a> NPBufferReader<'a> {
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
-        Ok(NPRefs::new(None, None, text_buffer, footer))
+        Ok(TabStateRefs::new(None, None, None, varint_two, varint_three, buffer_size, text_buffer, footer))
     }
 }
