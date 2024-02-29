@@ -22,8 +22,8 @@ The `NPBufferReader` type is there for the future. This type will handle other s
 checks that you aren't passing in an empty buffer. I will probably change it to also check the magic bytes.
 
 ```rust
-fn get_tab_state_buffer(buffer: &[u8]) -> std::io::Result<NPRefs> {
-    let np = NPBufferReader::new(buffer)?;
+fn get_tab_state_buffer<'a>(buffer: &'a [u8]) -> std::io::Result<TabStateRefs<'a>> {
+    let np = TabStateReader::new(buffer)?;
     np.get_refs()
 }
 
