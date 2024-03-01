@@ -3,7 +3,7 @@
 use std::io::{Error, ErrorKind};
 use buffer_reader::BufferReader;
 use widestring::WideStr;
-use crate::consts::{FILE_STATE_SAVED, FILE_STATE_UNSAVED, FIRST_MARKER_BYTE, FIRST_MARKER_VARIANTS, SECOND_MARKER_BYTES, SIZE_END_MARKER};
+use crate::consts::{FILE_STATE_SAVED, FILE_STATE_UNSAVED, ENCODINGS, CARRIAGE_TYPES, SECOND_MARKER_BYTES, SIZE_END_MARKER};
 use crate::footer::TabStateFooter;
 use crate::metadata::TabStateMetadata;
 use crate::refs::varint::VarIntRef;
@@ -97,28 +97,29 @@ impl<'a> TabStateRefs<'a> {
 
         let full_buffer_size = VarIntRef::from_reader(&br)?;
 
-        // Get the first marker, which denotes the start of the metadata structure. This might be two
-        // different fields, or incidental. I am not sure.
-        let marker_one_location = br.find_bytes(&FIRST_MARKER_BYTE).ok_or(Error::new(
-            ErrorKind::InvalidData,
-            format!("Could not find marker bytes: {FIRST_MARKER_BYTE:02X?}"),
-        ))?;
-
-        // Read first size and possibly some ohter metadata which is currently unknown.
-        br.read_bytes(marker_one_location)?;
-
         // Get the main metadata object (?)
         let some_metadata = br.read_t::<TabStateMetadata>()?;
 
-        // The metadata structure includes the 0x5 marker and the variant. The variant is the second
-        // byte.
-        let marker_variant = some_metadata.return_carriage as u8;
-        if !FIRST_MARKER_VARIANTS.contains(&marker_variant) {
+        // The metadata structure starts with the encoding and return carraige type
+        let encoding = some_metadata.encoding as u8;
+        if !ENCODINGS.contains(&encoding) {
             return Err(Error::new(
                 ErrorKind::InvalidData,
                 format!(
-                    "Unknown file variant. Expected one of: {FIRST_MARKER_VARIANTS:?}. Got: {:X}",
-                    marker_variant
+                    "Unknown encoding Expected one of: {ENCODINGS:?}. Got: {:X}",
+                    encoding
+                ),
+            ));
+        }
+
+
+        let return_carriage = some_metadata.return_carriage as u8;
+        if !CARRIAGE_TYPES.contains(&return_carriage) {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                format!(
+                    "Unknown file variant. Expected one of: {CARRIAGE_TYPES:?}. Got: {:X}",
+                    return_carriage
                 ),
             ));
         }
@@ -164,14 +165,14 @@ impl<'a> TabStateRefs<'a> {
         // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
         // and how many.
         if !br.is_empty() {
-            println!(
+            eprintln!(
                 "Please report on GH issues: Bytes still remaining in the buffer:\n\
             remaining: {}\n\
             bytes: {:?}",
                 br.len(),
                 br.get_remaining()
             );
-            println!("Please send me your buffer file, as well, so I can see what is wrong!")
+            eprintln!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
         Ok(TabStateRefs::new(
