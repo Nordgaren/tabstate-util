@@ -29,6 +29,7 @@ pub struct SavedRefs<'a> {
     full_buffer_size: VarIntRef<'a>,
     metadata: &'a TabStateMetadata,
 }
+
 impl<'a> SavedRefs<'a> {
     pub fn new(
         file_path: &'a WideStr,
@@ -59,6 +60,7 @@ pub struct TabStateCursor<'a> {
     cursor_start: VarIntRef<'a>,
     cursor_end: VarIntRef<'a>,
 }
+
 impl<'a> TabStateCursor<'a> {
     pub fn new(cursor_start: VarIntRef<'a>, cursor_end: VarIntRef<'a>) -> Self {
         Self {
@@ -125,12 +127,10 @@ impl<'a> TabStateRefs<'a> {
             ));
         }
 
-        let file_state = br.read_byte()?;
-
         match br.read_byte()? {
             FILE_STATE_SAVED => Self::read_saved_buffer(br),
             FILE_STATE_UNSAVED => Self::read_unsaved_buffer(br),
-            _ => Err(Error::new(
+            file_state => Err(Error::new(
                 ErrorKind::Unsupported,
                 format!(
                     "File state should be 1 or 0. There are likely this many bytes left in the buffer \
