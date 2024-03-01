@@ -48,6 +48,26 @@ impl<'a> VarIntRef<'a> {
 
         Ok(size)
     }
+    /// Decodes a varint from the provided bytes. Uses the largest int primitive available.
+    pub fn decode_lossless(&self) -> std::io::Result<u128> {
+        let size_buffer = self.buffer;
+        if size_buffer.is_empty() {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "size buffer cannot be of length 0",
+            ));
+        }
+
+        let mut size = 0;
+        // We strip the sign bit off and bit shift the value to the right by 7 * i (since each byte only holds
+        // 7 bits of data and this is little endian, so the byte furthest to the left is the least significant byte.)
+        for (i, val) in size_buffer.iter().enumerate() {
+            let num = (*val & MAX_VAL) as u128;
+            size |= num << (7 * i);
+        }
+
+        Ok(size)
+    }
     pub fn get_buffer(&self) -> &[u8] {
         self.buffer
     }
