@@ -126,20 +126,19 @@ impl<'a> TabStateRefs<'a> {
         }
 
         let file_state = br.read_byte()?;
-        if file_state == FILE_STATE_SAVED {
-            return Self::read_saved_buffer(br);
-        } else if file_state == FILE_STATE_UNSAVED {
-            return Self::read_unsaved_buffer(br);
-        }
 
-        Err(Error::new(
-            ErrorKind::Unsupported,
-            format!(
-                "File has no data. File state should be 1 or 0. There are likely \
-            this many bytes left in the buffer {file_state} + 5 bytes for the footer {}",
-                br.len() + 1
-            ),
-        ))
+        match br.read_byte()? {
+            FILE_STATE_SAVED => Self::read_saved_buffer(br),
+            FILE_STATE_UNSAVED => Self::read_unsaved_buffer(br),
+            _ => Err(Error::new(
+                ErrorKind::Unsupported,
+                format!(
+                    "File state should be 1 or 0. There are likely this many bytes left in the buffer \
+                    {file_state} + 5 bytes for the footer {}",
+                    br.len() + 1
+                ),
+            )),
+        }
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
     pub fn read_saved_buffer(br: BufferReader<'a>) -> std::io::Result<Self> {
