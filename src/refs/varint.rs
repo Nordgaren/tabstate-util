@@ -48,4 +48,7 @@ impl<'a> VarIntRef<'a> {
 
         Ok(size)
     }
+    pub fn get_buffer(&self) -> &[u8] {
+        self.buffer
+    }
 }

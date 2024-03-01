@@ -16,7 +16,7 @@ pub mod unsaved;
 pub struct TabStateRefs<'a> {
     file_path: Option<&'a WideStr>,
     full_buffer_size: Option<VarIntRef<'a>>,
-    some_metadata: Option<&'a TabStateMetadata>,
+    metadata: Option<&'a TabStateMetadata>,
     cursor_start: VarIntRef<'a>,
     cursor_end: VarIntRef<'a>,
     buffer_size: VarIntRef<'a>,
@@ -29,7 +29,7 @@ impl<'a> TabStateRefs<'a> {
     pub fn new(
         file_path: Option<&'a WideStr>,
         full_buffer_size: Option<VarIntRef<'a>>,
-        some_metadata: Option<&'a TabStateMetadata>,
+        metadata: Option<&'a TabStateMetadata>,
         cursor_start: VarIntRef<'a>,
         cursor_end: VarIntRef<'a>,
         buffer_size: VarIntRef<'a>,
@@ -39,7 +39,7 @@ impl<'a> TabStateRefs<'a> {
         Self {
             file_path,
             full_buffer_size,
-            some_metadata,
+            metadata,
             cursor_start,
             cursor_end,
             buffer_size,
@@ -47,13 +47,41 @@ impl<'a> TabStateRefs<'a> {
             footer,
         }
     }
-    /// Returns the path of the file this TabState represents. Unsaved files do not have a path.
+    /// Get a reference to the path of the file this TabState represents. Unsaved files do not have a path.
     pub fn get_path(&self) -> Option<&'a WideStr> {
         self.file_path
     }
-    /// Get the main text buffer for the file.
+    /// Get a reference to the full buffer size VarInt that represents the size of the text file on disk, if available.
+    pub fn get_full_buffer_size(&'a self) -> Option<&'a VarIntRef<'a>> {
+        if let Some(varint) = &self.full_buffer_size {
+            return Some(&varint)
+        }
+
+        None
+    }
+    /// Get a reference to the metadata structure, if available.
+    pub fn get_metadata(&self) -> Option<&'a TabStateMetadata> {
+        self.metadata
+    }
+    /// Get a reference to the cursor start VarInt.
+    pub fn get_cursor_start(&'a self) ->  &'a VarIntRef<'a> {
+        &self.cursor_start
+    }
+    /// Get a reference to the cursor end VarInt.
+    pub fn get_cursor_end(&'a self) ->  &'a VarIntRef<'a> {
+        &self.cursor_end
+    }
+    /// Get a reference to the main text buffer size for the TabState.
+    pub fn get_buffer_size(&'a self) ->  &'a VarIntRef<'a> {
+        &self.buffer_size
+    }
+    /// Get a reference to the main text buffer for the TabState.
     pub fn get_buffer(&self) -> &'a WideStr {
         self.text_buffer
+    }
+    /// Get a reference to the footer for the file.
+    pub fn get_footer(&self) ->  &'a TabStateFooter{
+        self.footer
     }
     pub fn from_buffer(buffer: &'a [u8]) -> std::io::Result<Self> {
         let br = BufferReader::new(buffer);
@@ -98,10 +126,10 @@ impl<'a> TabStateRefs<'a> {
         let full_buffer_size = VarIntRef::from_reader(&br)?;
 
         // Get the main metadata object (?)
-        let some_metadata = br.read_t::<TabStateMetadata>()?;
+        let metadata = br.read_t::<TabStateMetadata>()?;
 
         // The metadata structure starts with the encoding and return carraige type
-        let encoding = some_metadata.encoding as u8;
+        let encoding = metadata.encoding as u8;
         if !ENCODINGS.contains(&encoding) {
             return Err(Error::new(
                 ErrorKind::InvalidData,
@@ -113,7 +141,7 @@ impl<'a> TabStateRefs<'a> {
         }
 
 
-        let return_carriage = some_metadata.return_carriage as u8;
+        let return_carriage = metadata.return_carriage as u8;
         if !CARRIAGE_TYPES.contains(&return_carriage) {
             return Err(Error::new(
                 ErrorKind::InvalidData,
@@ -178,7 +206,7 @@ impl<'a> TabStateRefs<'a> {
         Ok(TabStateRefs::new(
             file_path,
             Some(full_buffer_size),
-            Some(some_metadata),
+            Some(metadata),
             cursor_start,
             cursor_end,
             buffer_size,
