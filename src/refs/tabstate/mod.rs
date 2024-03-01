@@ -1,13 +1,16 @@
 #![doc = "TabState references to each part of a TabState file. This is generic, so some parts are optional"]
 
-use std::io::{Error, ErrorKind};
-use buffer_reader::BufferReader;
-use widestring::WideStr;
-use crate::consts::{FILE_STATE_SAVED, FILE_STATE_UNSAVED, ENCODINGS, CARRIAGE_TYPES, SECOND_MARKER_BYTES, SIZE_END_MARKER};
+use crate::consts::{
+    CARRIAGE_TYPES, ENCODINGS, FILE_STATE_SAVED, FILE_STATE_UNSAVED, SECOND_MARKER_BYTES,
+    SIZE_END_MARKER,
+};
 use crate::footer::TabStateFooter;
 use crate::metadata::TabStateMetadata;
 use crate::refs::varint::VarIntRef;
 use crate::util;
+use buffer_reader::BufferReader;
+use std::io::{Error, ErrorKind};
+use widestring::WideStr;
 
 pub mod unsaved;
 
@@ -57,10 +60,7 @@ pub struct TabStateCursor<'a> {
     cursor_end: VarIntRef<'a>,
 }
 impl<'a> TabStateCursor<'a> {
-    pub fn new(
-        cursor_start: VarIntRef<'a>,
-        cursor_end: VarIntRef<'a>,
-    ) -> Self {
+    pub fn new(cursor_start: VarIntRef<'a>, cursor_end: VarIntRef<'a>) -> Self {
         Self {
             cursor_start,
             cursor_end,
@@ -89,11 +89,11 @@ impl<'a> TabStateRefs<'a> {
         self.saved_refs
     }
     /// Get a reference to the cursor start VarInt.
-    pub fn get_cursor_start(&'a self) ->  VarIntRef<'a> {
+    pub fn get_cursor_start(&'a self) -> VarIntRef<'a> {
         self.cursor.cursor_start
     }
     /// Get a reference to the cursor end VarInt.
-    pub fn get_cursor_end(&'a self) ->  VarIntRef<'a> {
+    pub fn get_cursor_end(&'a self) -> VarIntRef<'a> {
         self.cursor.cursor_end
     }
     /// Get a reference to the main text buffer size for the TabState.
@@ -105,7 +105,7 @@ impl<'a> TabStateRefs<'a> {
         self.text_buffer
     }
     /// Get a reference to the footer for the file.
-    pub fn get_footer(&self) ->  &'a TabStateFooter{
+    pub fn get_footer(&self) -> &'a TabStateFooter {
         self.footer
     }
     pub fn from_buffer(buffer: &'a [u8]) -> std::io::Result<Self> {
@@ -136,7 +136,8 @@ impl<'a> TabStateRefs<'a> {
             ErrorKind::Unsupported,
             format!(
                 "File has no data. File state should be 1 or 0. There are likely \
-            this many bytes left in the buffer {file_state} + 5 bytes for the footer {}", br.len() + 1
+            this many bytes left in the buffer {file_state} + 5 bytes for the footer {}",
+                br.len() + 1
             ),
         ))
     }
@@ -146,7 +147,6 @@ impl<'a> TabStateRefs<'a> {
         let path_len = br.read_byte()? as usize;
         let str_bytes = br.read_bytes(path_len * 2)?;
         let file_path = util::wide_string_from_buffer(str_bytes, path_len);
-
 
         let full_buffer_size = VarIntRef::from_reader(&br)?;
 
@@ -164,7 +164,6 @@ impl<'a> TabStateRefs<'a> {
                 ),
             ));
         }
-
 
         let return_carriage = metadata.return_carriage as u8;
         if !CARRIAGE_TYPES.contains(&return_carriage) {
@@ -229,15 +228,8 @@ impl<'a> TabStateRefs<'a> {
         }
 
         Ok(TabStateRefs::new(
-            Some(SavedRefs::new(
-                file_path,
-                full_buffer_size,
-                metadata,
-            )),
-            TabStateCursor::new(
-                cursor_start,
-                cursor_end,
-            ),
+            Some(SavedRefs::new(file_path, full_buffer_size, metadata)),
+            TabStateCursor::new(cursor_start, cursor_end),
             buffer_size,
             text_buffer,
             footer,

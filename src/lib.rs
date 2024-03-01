@@ -5,8 +5,8 @@ pub mod refs;
 mod util;
 
 use crate::consts::*;
-use std::io::{Error, ErrorKind};
 use crate::refs::tabstate::TabStateRefs;
+use std::io::{Error, ErrorKind};
 
 /// A structure that parses the Notepad buffer data.
 pub struct TabStateReader<'a> {

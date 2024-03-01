@@ -1,4 +1,3 @@
-
 /// I am pretty sure the footer is this size.
 #[repr(C)]
 pub struct TabStateFooter {

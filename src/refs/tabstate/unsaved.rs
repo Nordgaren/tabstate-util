@@ -1,9 +1,9 @@
 use crate::consts::{SIZE_END_MARKER, SIZE_START_MARKER};
-use buffer_reader::BufferReader;
-use std::io::{Error, ErrorKind};
 use crate::refs::tabstate::{TabStateCursor, TabStateRefs};
 use crate::refs::varint::VarIntRef;
 use crate::util;
+use buffer_reader::BufferReader;
+use std::io::{Error, ErrorKind};
 
 impl<'a> TabStateRefs<'a> {
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
@@ -37,7 +37,6 @@ impl<'a> TabStateRefs<'a> {
             ));
         };
 
-
         // Get the VarInt from the reader so we can decode it.
         let buffer_size = VarIntRef::from_reader(&br)?;
         let decoded_size = buffer_size.decode()?;
@@ -64,6 +63,12 @@ impl<'a> TabStateRefs<'a> {
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
-        Ok(TabStateRefs::new(None, TabStateCursor::new(cursor_start, cursor_end), buffer_size, text_buffer, footer))
+        Ok(TabStateRefs::new(
+            None,
+            TabStateCursor::new(cursor_start, cursor_end),
+            buffer_size,
+            text_buffer,
+            footer,
+        ))
     }
 }

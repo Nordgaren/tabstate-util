@@ -1,6 +1,6 @@
-use std::io::{Error, ErrorKind};
-use buffer_reader::BufferReader;
 use crate::consts::{MAX_VAL, SIGN_BIT};
+use buffer_reader::BufferReader;
+use std::io::{Error, ErrorKind};
 #[derive(Copy, Clone)]
 pub struct VarIntRef<'a> {
     buffer: &'a [u8],
@@ -30,7 +30,7 @@ impl<'a> VarIntRef<'a> {
     }
     /// Decodes a varint from the provided bytes
     pub fn decode(&self) -> std::io::Result<usize> {
-        let size_buffer =self.buffer;
+        let size_buffer = self.buffer;
         if size_buffer.is_empty() {
             return Err(Error::new(
                 ErrorKind::InvalidData,
