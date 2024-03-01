@@ -15,10 +15,10 @@ pub mod unsaved;
 #[allow(unused)]
 pub struct TabStateRefs<'a> {
     file_path: Option<&'a WideStr>,
-    unk_varint: Option<VarIntRef<'a>>,
+    full_buffer_size: Option<VarIntRef<'a>>,
     some_metadata: Option<&'a TabStateMetadata>,
-    line_position_one: VarIntRef<'a>,
-    line_position_two: VarIntRef<'a>,
+    cursor_start: VarIntRef<'a>,
+    cursor_end: VarIntRef<'a>,
     buffer_size: VarIntRef<'a>,
     text_buffer: &'a WideStr,
     footer: &'a TabStateFooter,
@@ -28,20 +28,20 @@ impl<'a> TabStateRefs<'a> {
     /// Returns a new `TabStateRefs` object containing the provided refs.
     pub fn new(
         file_path: Option<&'a WideStr>,
-        unk_varint: Option<VarIntRef<'a>>,
+        full_buffer_size: Option<VarIntRef<'a>>,
         some_metadata: Option<&'a TabStateMetadata>,
-        line_position_one: VarIntRef<'a>,
-        line_position_two: VarIntRef<'a>,
+        cursor_start: VarIntRef<'a>,
+        cursor_end: VarIntRef<'a>,
         buffer_size: VarIntRef<'a>,
         text_buffer: &'a WideStr,
         footer: &'a TabStateFooter,
     ) -> TabStateRefs<'a> {
         Self {
             file_path,
-            unk_varint,
+            full_buffer_size,
             some_metadata,
-            line_position_one,
-            line_position_two,
+            cursor_start,
+            cursor_end,
             buffer_size,
             text_buffer,
             footer,
@@ -92,10 +92,10 @@ impl<'a> TabStateRefs<'a> {
         // Get the file path.
         let path_len = br.read_byte()? as usize;
         let str_bytes = br.read_bytes(path_len * 2)?;
-        let file_path = unsafe { Some(util::wide_string_from_buffer(str_bytes, path_len)) };
+        let file_path = Some(util::wide_string_from_buffer(str_bytes, path_len));
 
 
-        let unk_varint = VarIntRef::from_reader(&br)?;
+        let full_buffer_size = VarIntRef::from_reader(&br)?;
 
         // Get the first marker, which denotes the start of the metadata structure. This might be two
         // different fields, or incidental. I am not sure.
@@ -112,13 +112,13 @@ impl<'a> TabStateRefs<'a> {
 
         // The metadata structure includes the 0x5 marker and the variant. The variant is the second
         // byte.
-        let marker_variant = &some_metadata.variant;
-        if !FIRST_MARKER_VARIANTS.contains(marker_variant) {
+        let marker_variant = some_metadata.return_carriage as u8;
+        if !FIRST_MARKER_VARIANTS.contains(&marker_variant) {
             return Err(Error::new(
                 ErrorKind::InvalidData,
                 format!(
                     "Unknown file variant. Expected one of: {FIRST_MARKER_VARIANTS:?}. Got: {:X}",
-                    *marker_variant
+                    marker_variant
                 ),
             ));
         }
@@ -135,8 +135,8 @@ impl<'a> TabStateRefs<'a> {
             ));
         }
 
-        let line_position_one = VarIntRef::from_reader(&br)?;
-        let line_position_two = VarIntRef::from_reader(&br)?;
+        let cursor_start = VarIntRef::from_reader(&br)?;
+        let cursor_end = VarIntRef::from_reader(&br)?;
 
         // Find the third marker, which denotes the end of the two unknown sizes. I have noticed these
         // sizes are sometimes the same as the buffer and sometimes not the same. They might also be
@@ -176,10 +176,10 @@ impl<'a> TabStateRefs<'a> {
 
         Ok(TabStateRefs::new(
             file_path,
-            Some(unk_varint),
+            Some(full_buffer_size),
             Some(some_metadata),
-            line_position_one,
-            line_position_two,
+            cursor_start,
+            cursor_end,
             buffer_size,
             text_buffer,
             footer,

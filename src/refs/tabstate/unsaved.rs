@@ -21,8 +21,8 @@ impl<'a> TabStateRefs<'a> {
             ));
         }
 
-        let varint_two = VarIntRef::from_reader(&br)?;
-        let varint_three = VarIntRef::from_reader(&br)?;
+        let cursor_start = VarIntRef::from_reader(&br)?;
+        let cursor_end = VarIntRef::from_reader(&br)?;
 
         // Find the third marker, which denotes the end of the two unknown sizes. I have noticed these
         // sizes are sometimes the same as the buffer and sometimes not the same. They might also be
@@ -64,6 +64,6 @@ impl<'a> TabStateRefs<'a> {
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
-        Ok(TabStateRefs::new(None, None, None, varint_two, varint_three, buffer_size, text_buffer, footer))
+        Ok(TabStateRefs::new(None, None, None, cursor_start, cursor_end, buffer_size, text_buffer, footer))
     }
 }
