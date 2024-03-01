@@ -149,7 +149,7 @@ impl<'a> TabStateRefs<'a> {
             ));
         }
 
-        // after the first marker should be two more VarInt. These represent the cursor start and end
+        // After the first marker should be two more VarInt. These represent the cursor start and end
         // point for selection. They will be equal if there is no selection.
         let cursor_start = VarIntRef::from_reader(&br)?;
         let cursor_end = VarIntRef::from_reader(&br)?;

@@ -1,4 +1,4 @@
-use crate::consts::{SIZE_END_MARKER, SIZE_START_MARKER};
+use crate::consts::{SIZE_END_MARKER, UNSAVED_SIZE_START_MARKER};
 use crate::refs::tabstate::{TabStateCursor, TabStateRefs};
 use crate::refs::varint::VarIntRef;
 use crate::util;
@@ -10,18 +10,17 @@ impl<'a> TabStateRefs<'a> {
     /// unsupported if Notepad has not been closed since the tab was opened.
     pub(crate) fn read_unsaved_buffer(br: BufferReader<'a>) -> std::io::Result<TabStateRefs<'a>> {
         // Read the unsaved marker, and make sure it's what's expected.
-        let marker = br.read_bytes(1)?;
-        if marker != SIZE_START_MARKER {
+        let marker = br.read_byte()?;
+        if marker != UNSAVED_SIZE_START_MARKER {
             return Err(Error::new(
                 ErrorKind::InvalidData,
                 format!(
-                    "Unknown marker encountered. Expected: {SIZE_START_MARKER:02X?} Got: {:02X?}.",
-                    marker
+                    "Unknown marker encountered. Expected: 0x{UNSAVED_SIZE_START_MARKER:02X} Got: 0x{marker:02X}.",
                 ),
             ));
         }
 
-        // after the first marker should be two more VarInt. These represent the cursor start and end
+        // After the first marker should be two more VarInt. These represent the cursor start and end
         // point for selection. They will be equal if there is no selection.
         let cursor_start = VarIntRef::from_reader(&br)?;
         let cursor_end = VarIntRef::from_reader(&br)?;

@@ -6,4 +6,4 @@ pub const SECOND_MARKER_BYTES: [u8; 2] = [0x00, 0x01];
 pub const SIZE_END_MARKER: [u8; 4] = [0x01, 0x00, 0x00, 0x00];
 pub const MAX_VAL: u8 = 0x7F;
 pub const SIGN_BIT: u8 = 0x80;
-pub const SIZE_START_MARKER: [u8; 1] = [0x01];
+pub const UNSAVED_SIZE_START_MARKER: u8 = 0x01;
