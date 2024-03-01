@@ -6,12 +6,16 @@ use crate::consts::{
 };
 use crate::footer::TabStateFooter;
 use crate::metadata::TabStateMetadata;
+use crate::refs::tabstate::cursor::TabStateCursor;
+use crate::refs::tabstate::saved::SavedRefs;
 use crate::refs::varint::VarIntRef;
 use crate::util;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
 
+pub mod cursor;
+pub mod saved;
 pub mod unsaved;
 
 /// A structure tht holds references to the data in a Notepad buffer.
@@ -22,52 +26,6 @@ pub struct TabStateRefs<'a> {
     buffer_size: VarIntRef<'a>,
     text_buffer: &'a WideStr,
     footer: &'a TabStateFooter,
-}
-#[derive(Copy, Clone)]
-pub struct SavedRefs<'a> {
-    file_path: &'a WideStr,
-    full_buffer_size: VarIntRef<'a>,
-    metadata: &'a TabStateMetadata,
-}
-
-impl<'a> SavedRefs<'a> {
-    pub fn new(
-        file_path: &'a WideStr,
-        full_buffer_size: VarIntRef<'a>,
-        metadata: &'a TabStateMetadata,
-    ) -> Self {
-        Self {
-            file_path,
-            full_buffer_size,
-            metadata,
-        }
-    }
-    /// Get a reference to the path of the file this TabState represents. Unsaved files do not have a path.
-    pub fn get_path(&self) -> &'a WideStr {
-        self.file_path
-    }
-    /// Get a reference to the full buffer size VarInt that represents the size of the text file on disk, if available.
-    pub fn get_full_buffer_size(&'a self) -> VarIntRef<'a> {
-        self.full_buffer_size
-    }
-    /// Get a reference to the metadata structure, if available.
-    pub fn get_metadata(&self) -> &'a TabStateMetadata {
-        self.metadata
-    }
-}
-
-pub struct TabStateCursor<'a> {
-    cursor_start: VarIntRef<'a>,
-    cursor_end: VarIntRef<'a>,
-}
-
-impl<'a> TabStateCursor<'a> {
-    pub fn new(cursor_start: VarIntRef<'a>, cursor_end: VarIntRef<'a>) -> Self {
-        Self {
-            cursor_start,
-            cursor_end,
-        }
-    }
 }
 
 impl<'a> TabStateRefs<'a> {
@@ -92,11 +50,11 @@ impl<'a> TabStateRefs<'a> {
     }
     /// Get a reference to the cursor start VarInt.
     pub fn get_cursor_start(&'a self) -> VarIntRef<'a> {
-        self.cursor.cursor_start
+        self.cursor.get_cursor_start()
     }
     /// Get a reference to the cursor end VarInt.
     pub fn get_cursor_end(&'a self) -> VarIntRef<'a> {
-        self.cursor.cursor_end
+        self.cursor.get_cursor_end()
     }
     /// Get a reference to the main text buffer size for the TabState.
     pub fn get_buffer_size(&'a self) -> VarIntRef<'a> {
@@ -133,8 +91,12 @@ impl<'a> TabStateRefs<'a> {
             file_state => Err(Error::new(
                 ErrorKind::Unsupported,
                 format!(
-                    "File state should be 1 or 0. There are likely this many bytes left in the buffer \
-                    {file_state} + 5 bytes for the footer {}",
+                    "File state should be 1 or 0. There are likely {} bytes left in the buffer Remaining: {}",
+                    // When the file state is not 1 or 0 it indicates how many bytes are left in the
+                    // file
+                    file_state as usize + std::mem::size_of::<TabStateFooter>(),
+                    // This includes the header, but also includes the file state byte, so we add one
+                    // to the length of the remaining bytes
                     br.len() + 1
                 ),
             )),
@@ -149,10 +111,10 @@ impl<'a> TabStateRefs<'a> {
 
         let full_buffer_size = VarIntRef::from_reader(&br)?;
 
-        // Get the main metadata object (?)
+        // Get the main metadata object
         let metadata = br.read_t::<TabStateMetadata>()?;
 
-        // The metadata structure starts with the encoding and return carraige type
+        // The metadata structure starts with the encoding
         let encoding = metadata.encoding as u8;
         if !ENCODINGS.contains(&encoding) {
             return Err(Error::new(
@@ -163,7 +125,7 @@ impl<'a> TabStateRefs<'a> {
                 ),
             ));
         }
-
+        // Then the return carriage type
         let return_carriage = metadata.return_carriage as u8;
         if !CARRIAGE_TYPES.contains(&return_carriage) {
             return Err(Error::new(
@@ -187,15 +149,13 @@ impl<'a> TabStateRefs<'a> {
             ));
         }
 
+        // after the first marker should be two more VarInt. These represent the cursor start and end
+        // point for selection. They will be equal if there is no selection.
         let cursor_start = VarIntRef::from_reader(&br)?;
         let cursor_end = VarIntRef::from_reader(&br)?;
 
-        // Find the third marker, which denotes the end of the two unknown sizes. I have noticed these
-        // sizes are sometimes the same as the buffer and sometimes not the same. They might also be
-        // different sizes (as in bytes) than the main text buffer size. They can also both be 0 for
-        // some reason.
+        // Read the third marker, which denotes the end of the two cursor start points.
         let marker_three = br.read_bytes(SIZE_END_MARKER.len())?;
-
         if marker_three != SIZE_END_MARKER {
             return Err(Error::new(
                 ErrorKind::InvalidData,
@@ -203,25 +163,25 @@ impl<'a> TabStateRefs<'a> {
             ));
         };
 
-        // Get the VarInt from the reader so we can decode it.
+        // Get the VarInt for the text buffer size in UTF-16.
         let buffer_size = VarIntRef::from_reader(&br)?;
         let decoded_size = buffer_size.decode()?;
 
-        // The text buffer should be right after the final size buffer we just read.
+        // The text buffer should be right after the VarInt we just read. Double the size of bytes
+        // to read, since the size is in UTF-16 chars
         let text_buffer = br.read_bytes(decoded_size * 2)?;
         let text_buffer = util::wide_string_from_buffer(text_buffer, decoded_size);
 
+        // It always ends with this footer. I am not sure if it's there if there's extra data, as there
+        // sometimes is extra data. It might still be after the text buffer AND at the end of the file.
         let footer = br.read_t()?;
 
         // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
         // and how many.
         if !br.is_empty() {
             eprintln!(
-                "Please report on GH issues: Bytes still remaining in the buffer:\n\
-            remaining: {}\n\
-            bytes: {:?}",
+                "Please report on GH issues: Bytes still remaining in the buffer: {}\n",
                 br.len(),
-                br.get_remaining()
             );
             eprintln!("Please send me your buffer file, as well, so I can see what is wrong!")
         }

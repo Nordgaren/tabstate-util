@@ -21,13 +21,12 @@ impl<'a> TabStateRefs<'a> {
             ));
         }
 
+        // after the first marker should be two more VarInt. These represent the cursor start and end
+        // point for selection. They will be equal if there is no selection.
         let cursor_start = VarIntRef::from_reader(&br)?;
         let cursor_end = VarIntRef::from_reader(&br)?;
 
-        // Find the third marker, which denotes the end of the two unknown sizes. I have noticed these
-        // sizes are sometimes the same as the buffer and sometimes not the same. They might also be
-        // different sizes (as in bytes) than the main text buffer size. They can also both be 0 for
-        // some reason.
+        // Read the third marker, which denotes the end of the two cursor start points.
         let marker_three = br.read_bytes(SIZE_END_MARKER.len())?;
 
         if marker_three != SIZE_END_MARKER {
@@ -37,14 +36,15 @@ impl<'a> TabStateRefs<'a> {
             ));
         };
 
-        // Get the VarInt from the reader so we can decode it.
+        // Get the VarInt for the text buffer size in UTF-16.
         let buffer_size = VarIntRef::from_reader(&br)?;
         let decoded_size = buffer_size.decode()?;
         if decoded_size == 0 {
             return Err(Error::new(ErrorKind::Unsupported, "Buffer file has unknown size. The TabState buffer doesn't get the size of the buffer until Notepad has been \"closed\". Currently unsupported"));
         }
 
-        // The text buffer should be right after the final size buffer we just read.
+        // The text buffer should be right after the VarInt we just read. Double the size of bytes
+        // to read, since the size is in UTF-16 chars
         let text_buffer = br.read_bytes(decoded_size * 2)?;
         let text_buffer = util::wide_string_from_buffer(text_buffer, decoded_size);
 
@@ -53,12 +53,9 @@ impl<'a> TabStateRefs<'a> {
         // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
         // and how many.
         if !br.is_empty() {
-            println!(
-                "Please report on GH issues: Bytes still remaining in the buffer:\n\
-            remaining: {}\n\
-            bytes: {:?}",
+            eprintln!(
+                "Please report on GH issues: Bytes still remaining in the buffer: {}\n",
                 br.len(),
-                br.get_remaining()
             );
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
