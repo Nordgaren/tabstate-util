@@ -1,7 +1,7 @@
 use std::io::{Error, ErrorKind};
 use buffer_reader::BufferReader;
 use crate::consts::{MAX_VAL, SIGN_BIT};
-
+#[derive(Copy, Clone)]
 pub struct VarIntRef<'a> {
     buffer: &'a [u8],
 }
@@ -41,8 +41,8 @@ impl<'a> VarIntRef<'a> {
         let mut size = 0;
         // We strip the sign bit off and bit shift the value to the right by 7 * i (since each byte only holds
         // 7 bits of data and this is little endian, so the byte furthest to the left is the least significant byte.)
-        for i in 0..size_buffer.len() {
-            let num = (size_buffer[i] & MAX_VAL) as usize;
+        for (i, val) in size_buffer.iter().enumerate() {
+            let num = (*val & MAX_VAL) as usize;
             size |= num << (7 * i);
         }
 

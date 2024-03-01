@@ -14,66 +14,91 @@ pub mod unsaved;
 /// A structure tht holds references to the data in a Notepad buffer.
 #[allow(unused)]
 pub struct TabStateRefs<'a> {
-    file_path: Option<&'a WideStr>,
-    full_buffer_size: Option<VarIntRef<'a>>,
-    metadata: Option<&'a TabStateMetadata>,
-    cursor_start: VarIntRef<'a>,
-    cursor_end: VarIntRef<'a>,
+    saved_refs: Option<SavedRefs<'a>>,
+    cursor: TabStateCursor<'a>,
     buffer_size: VarIntRef<'a>,
     text_buffer: &'a WideStr,
     footer: &'a TabStateFooter,
+}
+#[derive(Copy, Clone)]
+pub struct SavedRefs<'a> {
+    file_path: &'a WideStr,
+    full_buffer_size: VarIntRef<'a>,
+    metadata: &'a TabStateMetadata,
+}
+impl<'a> SavedRefs<'a> {
+    pub fn new(
+        file_path: &'a WideStr,
+        full_buffer_size: VarIntRef<'a>,
+        metadata: &'a TabStateMetadata,
+    ) -> Self {
+        Self {
+            file_path,
+            full_buffer_size,
+            metadata,
+        }
+    }
+    /// Get a reference to the path of the file this TabState represents. Unsaved files do not have a path.
+    pub fn get_path(&self) -> &'a WideStr {
+        self.file_path
+    }
+    /// Get a reference to the full buffer size VarInt that represents the size of the text file on disk, if available.
+    pub fn get_full_buffer_size(&'a self) -> VarIntRef<'a> {
+        self.full_buffer_size
+    }
+    /// Get a reference to the metadata structure, if available.
+    pub fn get_metadata(&self) -> &'a TabStateMetadata {
+        self.metadata
+    }
+}
+
+pub struct TabStateCursor<'a> {
+    cursor_start: VarIntRef<'a>,
+    cursor_end: VarIntRef<'a>,
+}
+impl<'a> TabStateCursor<'a> {
+    pub fn new(
+        cursor_start: VarIntRef<'a>,
+        cursor_end: VarIntRef<'a>,
+    ) -> Self {
+        Self {
+            cursor_start,
+            cursor_end,
+        }
+    }
 }
 
 impl<'a> TabStateRefs<'a> {
     /// Returns a new `TabStateRefs` object containing the provided refs.
     pub fn new(
-        file_path: Option<&'a WideStr>,
-        full_buffer_size: Option<VarIntRef<'a>>,
-        metadata: Option<&'a TabStateMetadata>,
-        cursor_start: VarIntRef<'a>,
-        cursor_end: VarIntRef<'a>,
+        saved_refs: Option<SavedRefs<'a>>,
+        cursor: TabStateCursor<'a>,
         buffer_size: VarIntRef<'a>,
         text_buffer: &'a WideStr,
         footer: &'a TabStateFooter,
     ) -> TabStateRefs<'a> {
         Self {
-            file_path,
-            full_buffer_size,
-            metadata,
-            cursor_start,
-            cursor_end,
+            saved_refs,
+            cursor,
             buffer_size,
             text_buffer,
             footer,
         }
     }
-    /// Get a reference to the path of the file this TabState represents. Unsaved files do not have a path.
-    pub fn get_path(&self) -> Option<&'a WideStr> {
-        self.file_path
-    }
-    /// Get a reference to the full buffer size VarInt that represents the size of the text file on disk, if available.
-    pub fn get_full_buffer_size(&'a self) -> Option<&'a VarIntRef<'a>> {
-        if let Some(varint) = &self.full_buffer_size {
-            return Some(&varint)
-        }
-
-        None
-    }
-    /// Get a reference to the metadata structure, if available.
-    pub fn get_metadata(&self) -> Option<&'a TabStateMetadata> {
-        self.metadata
+    pub fn get_saved_tabstate_refs(&self) -> Option<SavedRefs> {
+        self.saved_refs
     }
     /// Get a reference to the cursor start VarInt.
-    pub fn get_cursor_start(&'a self) ->  &'a VarIntRef<'a> {
-        &self.cursor_start
+    pub fn get_cursor_start(&'a self) ->  VarIntRef<'a> {
+        self.cursor.cursor_start
     }
     /// Get a reference to the cursor end VarInt.
-    pub fn get_cursor_end(&'a self) ->  &'a VarIntRef<'a> {
-        &self.cursor_end
+    pub fn get_cursor_end(&'a self) ->  VarIntRef<'a> {
+        self.cursor.cursor_end
     }
     /// Get a reference to the main text buffer size for the TabState.
-    pub fn get_buffer_size(&'a self) ->  &'a VarIntRef<'a> {
-        &self.buffer_size
+    pub fn get_buffer_size(&'a self) -> VarIntRef<'a> {
+        self.buffer_size
     }
     /// Get a reference to the main text buffer for the TabState.
     pub fn get_buffer(&self) -> &'a WideStr {
@@ -120,7 +145,7 @@ impl<'a> TabStateRefs<'a> {
         // Get the file path.
         let path_len = br.read_byte()? as usize;
         let str_bytes = br.read_bytes(path_len * 2)?;
-        let file_path = Some(util::wide_string_from_buffer(str_bytes, path_len));
+        let file_path = util::wide_string_from_buffer(str_bytes, path_len);
 
 
         let full_buffer_size = VarIntRef::from_reader(&br)?;
@@ -204,11 +229,15 @@ impl<'a> TabStateRefs<'a> {
         }
 
         Ok(TabStateRefs::new(
-            file_path,
-            Some(full_buffer_size),
-            Some(metadata),
-            cursor_start,
-            cursor_end,
+            Some(SavedRefs::new(
+                file_path,
+                full_buffer_size,
+                metadata,
+            )),
+            TabStateCursor::new(
+                cursor_start,
+                cursor_end,
+            ),
             buffer_size,
             text_buffer,
             footer,

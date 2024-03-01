@@ -1,4 +1,3 @@
-use crate::consts::METADATA_STRUCTURE_SIZE;
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]
@@ -23,4 +22,5 @@ pub struct TabStateMetadata {
     pub unk: [u8; 0x6],
     pub unk_two: [u8; 0x23],
 }
+pub const METADATA_STRUCTURE_SIZE: usize = 0x2B;
 const _: () = assert!(std::mem::size_of::<TabStateMetadata>() == METADATA_STRUCTURE_SIZE);

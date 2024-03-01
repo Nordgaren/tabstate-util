@@ -1,7 +1,7 @@
 use crate::consts::{SIZE_END_MARKER, SIZE_START_MARKER};
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
-use crate::refs::tabstate::TabStateRefs;
+use crate::refs::tabstate::{TabStateCursor, TabStateRefs};
 use crate::refs::varint::VarIntRef;
 use crate::util;
 
@@ -64,6 +64,6 @@ impl<'a> TabStateRefs<'a> {
             println!("Please send me your buffer file, as well, so I can see what is wrong!")
         }
 
-        Ok(TabStateRefs::new(None, None, None, cursor_start, cursor_end, buffer_size, text_buffer, footer))
+        Ok(TabStateRefs::new(None, TabStateCursor::new(cursor_start, cursor_end), buffer_size, text_buffer, footer))
     }
 }
