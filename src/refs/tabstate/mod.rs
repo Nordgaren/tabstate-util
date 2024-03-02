@@ -1,12 +1,11 @@
 #![doc = "TabState references to each part of a TabState file. This is generic, so some parts are optional"]
 
 use crate::consts::{
-    CARRIAGE_TYPES, ENCODINGS, FILE_STATE_SAVED, FILE_STATE_UNSAVED, CURSOR_START_MARKER,
+    FILE_STATE_SAVED, FILE_STATE_UNSAVED, CURSOR_START_MARKER,
     CURSOR_END_MARKER,
 };
 use crate::footer::TabStateFooter;
 use crate::header::Header;
-use crate::metadata::TabStateMetadata;
 use crate::refs::tabstate::cursor::TabStateCursor;
 use crate::refs::tabstate::saved::SavedRefs;
 use crate::refs::varint::VarIntRef;
@@ -17,7 +16,6 @@ use widestring::WideStr;
 
 pub mod cursor;
 pub mod saved;
-pub mod unsaved;
 
 /// A structure tht holds references to the data in a Notepad buffer.
 #[allow(unused)]
@@ -92,10 +90,10 @@ impl<'a> TabStateRefs<'a> {
 
         // We have to match as u8s, otherwise the compiler thinks the final case is unreachable, which
         // is not true in this case, and the code will be optimized out.
-        match header.state as u8 {
-            FILE_STATE_SAVED => Self::read_saved_buffer(br, header),
-            FILE_STATE_UNSAVED => Self::read_unsaved_buffer(br, header),
-            file_state => Err(Error::new(
+        let saved_refs = match header.state as u8 {
+            FILE_STATE_SAVED => Some(SavedRefs::from_reader(&br)?),
+            FILE_STATE_UNSAVED => None,
+            file_state => return Err(Error::new(
                 ErrorKind::Unsupported,
                 format!(
                     "File state should be 1 or 0. There are likely {} bytes left in the buffer Remaining: {}",
@@ -107,43 +105,7 @@ impl<'a> TabStateRefs<'a> {
                     br.len() + 1
                 ),
             )),
-        }
-    }
-    /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
-    fn read_saved_buffer(br: BufferReader<'a>, header: &'a Header) -> std::io::Result<Self> {
-        // Get the file path.
-        let file_path_len = VarIntRef::from_reader(&br)?;
-        let decoded_size = file_path_len.decode();
-        let str_bytes = br.read_bytes(decoded_size * 2)?;
-        let file_path = util::wide_string_from_buffer(str_bytes, decoded_size);
-
-        let full_buffer_size = VarIntRef::from_reader(&br)?;
-
-        // Get the main metadata object
-        let metadata = br.read_t::<TabStateMetadata>()?;
-
-        // The metadata structure starts with the encoding
-        let encoding = metadata.encoding as u8;
-        if !ENCODINGS.contains(&encoding) {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                format!(
-                    "Unknown encoding Expected one of: {ENCODINGS:?}. Got: {:X}",
-                    encoding
-                ),
-            ));
-        }
-        // Then the return carriage type
-        let return_carriage = metadata.return_carriage as u8;
-        if !CARRIAGE_TYPES.contains(&return_carriage) {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                format!(
-                    "Unknown file variant. Expected one of: {CARRIAGE_TYPES:?}. Got: {:X}",
-                    return_carriage
-                ),
-            ));
-        }
+        };
 
         // Read the second marker, and make sure it's what's expected.
         let start_marker = br.read_byte()?;
@@ -196,7 +158,7 @@ impl<'a> TabStateRefs<'a> {
 
         Ok(TabStateRefs::new(
             header,
-            Some(SavedRefs::new(file_path_len, file_path, full_buffer_size, metadata)),
+            saved_refs,
             TabStateCursor::new(cursor_start, cursor_end),
             buffer_size,
             text_buffer,
