@@ -3,7 +3,7 @@ use crate::varint::VarInt;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 
-/// A reference to a slice of bytes that represent an variable sized integer.
+/// A reference to a slice of bytes that represent a variable sized integer.
 #[derive(Copy, Clone, PartialEq)]
 pub struct VarIntRef<'a> {
     buffer: &'a [u8],
