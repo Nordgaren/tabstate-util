@@ -1,6 +1,8 @@
 use crate::consts::{MAX_VAL, SIGN_BIT};
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
+use crate::varint::VarInt;
+
 #[derive(Copy, Clone)]
 pub struct VarIntRef<'a> {
     buffer: &'a [u8],
@@ -70,5 +72,11 @@ impl<'a> VarIntRef<'a> {
     }
     pub fn get_buffer(&self) -> &[u8] {
         self.buffer
+    }
+    pub fn size_of(&self) -> usize {
+        self.buffer.len()
+    }
+    pub fn to_owned(&self) -> VarInt {
+        VarInt::from_buffer(self.buffer)
     }
 }
