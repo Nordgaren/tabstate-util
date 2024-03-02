@@ -4,11 +4,12 @@ use crate::refs::varint::VarIntRef;
 use crate::util;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
+use crate::header::Header;
 
 impl<'a> TabStateRefs<'a> {
     /// Reads a Notepad tab buffer that is not saved to disk, and does not have a filepath. Currently
     /// unsupported if Notepad has not been closed since the tab was opened.
-    pub(crate) fn read_unsaved_buffer(br: BufferReader<'a>) -> std::io::Result<TabStateRefs<'a>> {
+    pub(crate) fn read_unsaved_buffer(br: BufferReader<'a>,  header: &'a Header) -> std::io::Result<TabStateRefs<'a>> {
         // Read the unsaved marker, and make sure it's what's expected.
         let marker = br.read_byte()?;
         if marker != UNSAVED_SIZE_START_MARKER {
@@ -60,6 +61,7 @@ impl<'a> TabStateRefs<'a> {
         }
 
         Ok(TabStateRefs::new(
+            header,
             None,
             TabStateCursor::new(cursor_start, cursor_end),
             buffer_size,

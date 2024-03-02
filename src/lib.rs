@@ -4,6 +4,7 @@ pub mod metadata;
 pub mod refs;
 mod util;
 pub mod varint;
+pub mod header;
 
 use crate::consts::*;
 use crate::refs::tabstate::TabStateRefs;

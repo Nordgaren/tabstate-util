@@ -13,6 +13,7 @@ use crate::util;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
+use crate::header::Header;
 
 pub mod cursor;
 pub mod saved;
@@ -21,6 +22,7 @@ pub mod unsaved;
 /// A structure tht holds references to the data in a Notepad buffer.
 #[allow(unused)]
 pub struct TabStateRefs<'a> {
+    header: &'a Header,
     saved_refs: Option<SavedRefs<'a>>,
     cursor: TabStateCursor<'a>,
     buffer_size: VarIntRef<'a>,
@@ -31,6 +33,7 @@ pub struct TabStateRefs<'a> {
 impl<'a> TabStateRefs<'a> {
     /// Returns a new `TabStateRefs` object containing the provided refs.
     pub fn new(
+        header: &'a Header,
         saved_refs: Option<SavedRefs<'a>>,
         cursor: TabStateCursor<'a>,
         buffer_size: VarIntRef<'a>,
@@ -38,6 +41,7 @@ impl<'a> TabStateRefs<'a> {
         footer: &'a TabStateFooter,
     ) -> TabStateRefs<'a> {
         Self {
+            header,
             saved_refs,
             cursor,
             buffer_size,
@@ -71,23 +75,24 @@ impl<'a> TabStateRefs<'a> {
     pub fn from_buffer(buffer: &'a [u8]) -> std::io::Result<Self> {
         let br = BufferReader::new(buffer);
 
-        let magic = br.read_bytes(3)?;
+        let header = br.read_t::<Header>()?;
 
         // I know that the magic is technically just NP, and that the third byte can change, but if
         // it isn't I am going to return an error, anyway, so let's just check it here.
-        if magic != b"NP\0" {
+        if &header.magic != b"NP\0" {
             return Err(Error::new(
                 ErrorKind::InvalidData,
                 format!(
-                    "Magic bytes invalid. Should be \"NP\" and a null byte. Read: \"{}\" raw: {magic:?}",
-                    unsafe { std::str::from_utf8_unchecked(magic) }
+                    "Magic bytes invalid. Should be \"NP\" and a null byte. Read: \"{}\" raw: {:?}",
+                    unsafe { std::str::from_utf8_unchecked(&header.magic) },
+                    header.magic
                 ),
             ));
         }
 
-        match br.read_byte()? {
-            FILE_STATE_SAVED => Self::read_saved_buffer(br),
-            FILE_STATE_UNSAVED => Self::read_unsaved_buffer(br),
+        match header.state {
+            FILE_STATE_SAVED => Self::read_saved_buffer(br, header),
+            FILE_STATE_UNSAVED => Self::read_unsaved_buffer(br, header),
             file_state => Err(Error::new(
                 ErrorKind::Unsupported,
                 format!(
@@ -103,7 +108,7 @@ impl<'a> TabStateRefs<'a> {
         }
     }
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
-    pub fn read_saved_buffer(br: BufferReader<'a>) -> std::io::Result<Self> {
+    fn read_saved_buffer(br: BufferReader<'a>, header: &'a Header) -> std::io::Result<Self> {
         // Get the file path.
         let path_len = br.read_byte()? as usize;
         let str_bytes = br.read_bytes(path_len * 2)?;
@@ -187,6 +192,7 @@ impl<'a> TabStateRefs<'a> {
         }
 
         Ok(TabStateRefs::new(
+            header,
             Some(SavedRefs::new(file_path, full_buffer_size, metadata)),
             TabStateCursor::new(cursor_start, cursor_end),
             buffer_size,
