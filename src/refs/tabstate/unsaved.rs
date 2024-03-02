@@ -1,4 +1,4 @@
-use crate::consts::{SIZE_END_MARKER, UNSAVED_SIZE_START_MARKER};
+use crate::consts::{CURSOR_END_MARKER, CURSOR_START_MARKER};
 use crate::header::Header;
 use crate::refs::tabstate::{TabStateCursor, TabStateRefs};
 use crate::refs::varint::VarIntRef;
@@ -14,12 +14,12 @@ impl<'a> TabStateRefs<'a> {
         header: &'a Header,
     ) -> std::io::Result<TabStateRefs<'a>> {
         // Read the unsaved marker, and make sure it's what's expected.
-        let marker = br.read_byte()?;
-        if marker != UNSAVED_SIZE_START_MARKER {
+        let start_marker = br.read_byte()?;
+        if start_marker != CURSOR_START_MARKER {
             return Err(Error::new(
                 ErrorKind::InvalidData,
                 format!(
-                    "Unknown marker encountered. Expected: 0x{UNSAVED_SIZE_START_MARKER:02X} Got: 0x{marker:02X}.",
+                    "Unknown marker encountered. Expected: 0x{CURSOR_START_MARKER:02X} Got: 0x{start_marker:02X}.",
                 ),
             ));
         }
@@ -30,12 +30,12 @@ impl<'a> TabStateRefs<'a> {
         let cursor_end = VarIntRef::from_reader(&br)?;
 
         // Read the third marker, which denotes the end of the two cursor start points.
-        let marker_three = br.read_bytes(SIZE_END_MARKER.len())?;
+        let end_marker = br.read_bytes(CURSOR_END_MARKER.len())?;
 
-        if marker_three != SIZE_END_MARKER {
+        if end_marker != CURSOR_END_MARKER {
             return Err(Error::new(
                 ErrorKind::InvalidData,
-                format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
+                format!("Could not find marker bytes: {CURSOR_END_MARKER:02X?}"),
             ));
         };
 

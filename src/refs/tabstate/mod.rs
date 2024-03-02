@@ -1,8 +1,8 @@
 #![doc = "TabState references to each part of a TabState file. This is generic, so some parts are optional"]
 
 use crate::consts::{
-    CARRIAGE_TYPES, ENCODINGS, FILE_STATE_SAVED, FILE_STATE_UNSAVED, SECOND_MARKER_BYTES,
-    SIZE_END_MARKER,
+    CARRIAGE_TYPES, ENCODINGS, FILE_STATE_SAVED, FILE_STATE_UNSAVED, CURSOR_START_MARKER,
+    CURSOR_END_MARKER,
 };
 use crate::footer::TabStateFooter;
 use crate::header::Header;
@@ -90,7 +90,9 @@ impl<'a> TabStateRefs<'a> {
             ));
         }
 
-        match header.state {
+        // We have to match as u8s, otherwise the compiler thinks the final case is unreachable, which
+        // is not true in this case, and the code will be optimized out.
+        match header.state as u8 {
             FILE_STATE_SAVED => Self::read_saved_buffer(br, header),
             FILE_STATE_UNSAVED => Self::read_unsaved_buffer(br, header),
             file_state => Err(Error::new(
@@ -144,13 +146,13 @@ impl<'a> TabStateRefs<'a> {
         }
 
         // Read the second marker, and make sure it's what's expected.
-        let marker_two = br.read_bytes(2)?;
-        if marker_two != SECOND_MARKER_BYTES {
+        let start_marker = br.read_byte()?;
+        if start_marker != CURSOR_START_MARKER {
             return Err(Error::new(
                 ErrorKind::InvalidData,
                 format!(
-                    "Unknown marker encountered. Expected: {SECOND_MARKER_BYTES:02X?} Got: {:02X?}.",
-                    marker_two
+                    "Unknown marker encountered. Expected: {CURSOR_START_MARKER:02X?} Got: {:02X?}.",
+                    start_marker
                 ),
             ));
         }
@@ -161,11 +163,11 @@ impl<'a> TabStateRefs<'a> {
         let cursor_end = VarIntRef::from_reader(&br)?;
 
         // Read the third marker, which denotes the end of the two cursor start points.
-        let marker_three = br.read_bytes(SIZE_END_MARKER.len())?;
-        if marker_three != SIZE_END_MARKER {
+        let end_marker = br.read_bytes(CURSOR_END_MARKER.len())?;
+        if end_marker != CURSOR_END_MARKER {
             return Err(Error::new(
                 ErrorKind::InvalidData,
-                format!("Could not find marker bytes: {SIZE_END_MARKER:02X?}"),
+                format!("Could not find marker bytes: {CURSOR_END_MARKER:02X?}"),
             ));
         };
 
