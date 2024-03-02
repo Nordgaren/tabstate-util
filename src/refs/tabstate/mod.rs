@@ -110,9 +110,10 @@ impl<'a> TabStateRefs<'a> {
     /// Reads a Notepad tab buffer that is saved to disk, and has a filepath and the text buffer.
     fn read_saved_buffer(br: BufferReader<'a>, header: &'a Header) -> std::io::Result<Self> {
         // Get the file path.
-        let path_len = br.read_byte()? as usize;
-        let str_bytes = br.read_bytes(path_len * 2)?;
-        let file_path = util::wide_string_from_buffer(str_bytes, path_len);
+        let file_path_len = VarIntRef::from_reader(&br)?;
+        let decoded_size = file_path_len.decode()?;
+        let str_bytes = br.read_bytes(decoded_size * 2)?;
+        let file_path = util::wide_string_from_buffer(str_bytes, decoded_size);
 
         let full_buffer_size = VarIntRef::from_reader(&br)?;
 
@@ -193,7 +194,7 @@ impl<'a> TabStateRefs<'a> {
 
         Ok(TabStateRefs::new(
             header,
-            Some(SavedRefs::new(file_path, full_buffer_size, metadata)),
+            Some(SavedRefs::new(file_path_len, file_path, full_buffer_size, metadata)),
             TabStateCursor::new(cursor_start, cursor_end),
             buffer_size,
             text_buffer,
