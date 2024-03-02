@@ -1,6 +1,7 @@
 use crate::consts::{MAX_VAL, SIGN_BIT};
 use crate::refs::varint::VarIntRef;
 
+/// An integer that doesn't have a size in bytes at compile time.
 pub struct VarInt {
     buffer: Vec<u8>,
 }

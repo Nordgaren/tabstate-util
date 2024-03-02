@@ -1,7 +1,7 @@
 use crate::metadata::TabStateMetadata;
 use crate::refs::varint::VarIntRef;
 use widestring::WideStr;
-
+/// Represents items that are only available in TabStates that represent a file on disk.
 #[derive(Copy, Clone)]
 pub struct SavedRefs<'a> {
     file_path_len: VarIntRef<'a>,

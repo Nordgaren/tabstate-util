@@ -1,3 +1,4 @@
+/// A header that represents the magic bytes and the state of the TabState file.
 #[repr(C)]
 pub struct Header {
     pub(crate) magic: [u8; 3],
