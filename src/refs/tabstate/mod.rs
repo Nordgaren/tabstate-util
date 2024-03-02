@@ -7,7 +7,7 @@ use crate::consts::{
 use crate::footer::TabStateFooter;
 use crate::header::Header;
 use crate::refs::tabstate::cursor::TabStateCursor;
-use crate::refs::tabstate::saved::SavedRefs;
+use crate::refs::tabstate::saved::SavedStateRefs;
 use crate::refs::varint::VarIntRef;
 use crate::util;
 use buffer_reader::BufferReader;
@@ -21,7 +21,7 @@ pub mod saved;
 #[allow(unused)]
 pub struct TabStateRefs<'a> {
     header: &'a Header,
-    saved_refs: Option<SavedRefs<'a>>,
+    saved_refs: Option<SavedStateRefs<'a>>,
     cursor: TabStateCursor<'a>,
     buffer_size: VarIntRef<'a>,
     text_buffer: &'a WideStr,
@@ -32,7 +32,7 @@ impl<'a> TabStateRefs<'a> {
     /// Returns a new `TabStateRefs` object containing the provided refs.
     pub fn new(
         header: &'a Header,
-        saved_refs: Option<SavedRefs<'a>>,
+        saved_refs: Option<SavedStateRefs<'a>>,
         cursor: TabStateCursor<'a>,
         buffer_size: VarIntRef<'a>,
         text_buffer: &'a WideStr,
@@ -47,7 +47,7 @@ impl<'a> TabStateRefs<'a> {
             footer,
         }
     }
-    pub fn get_saved_tabstate_refs(&self) -> Option<SavedRefs> {
+    pub fn get_saved_tabstate_refs(&self) -> Option<SavedStateRefs> {
         self.saved_refs
     }
     /// Get a reference to the cursor start VarInt.
@@ -91,7 +91,7 @@ impl<'a> TabStateRefs<'a> {
         // We have to match as u8s, otherwise the compiler thinks the final case is unreachable, which
         // is not true in this case, and the code will be optimized out.
         let saved_refs = match header.state as u8 {
-            FILE_STATE_SAVED => Some(SavedRefs::from_reader(&br)?),
+            FILE_STATE_SAVED => Some(SavedStateRefs::from_reader(&br)?),
             FILE_STATE_UNSAVED => None,
             file_state => return Err(Error::new(
                 ErrorKind::Unsupported,

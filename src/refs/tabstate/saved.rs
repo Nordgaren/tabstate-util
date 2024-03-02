@@ -8,14 +8,14 @@ use crate::util;
 
 /// Represents items that are only available in TabStates that represent a file on disk.
 #[derive(Copy, Clone)]
-pub struct SavedRefs<'a> {
+pub struct SavedStateRefs<'a> {
     file_path_len: VarIntRef<'a>,
     file_path: &'a WideStr,
     full_buffer_size: VarIntRef<'a>,
     metadata: &'a TabStateMetadata,
 }
 
-impl<'a> SavedRefs<'a> {
+impl<'a> SavedStateRefs<'a> {
     pub fn new(
         file_path_len: VarIntRef<'a>,
         file_path: &'a WideStr,
@@ -64,7 +64,7 @@ impl<'a> SavedRefs<'a> {
             ));
         }
 
-        Ok(SavedRefs::new(file_path_len, file_path, full_buffer_size, metadata))
+        Ok(SavedStateRefs::new(file_path_len, file_path, full_buffer_size, metadata))
     }
     /// Get a reference to the file path len VarInt that represents the size in chars of the text file
     /// path
