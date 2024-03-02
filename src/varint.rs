@@ -5,7 +5,6 @@ pub struct VarInt {
     buffer: Vec<u8>,
 }
 
-
 impl VarInt {
     pub fn new(num: u128) -> VarInt {
         let mut buffer = vec![];
@@ -23,7 +22,9 @@ impl VarInt {
     }
     /// Copies the provided buffer to a new vector and returns a `VarInt`
     pub fn from_buffer(buffer: &[u8]) -> VarInt {
-        Self { buffer: buffer.to_vec() }
+        Self {
+            buffer: buffer.to_vec(),
+        }
     }
     pub fn get_ref(&self) -> VarIntRef {
         VarIntRef::new(&self.buffer[..])
@@ -40,7 +41,6 @@ impl VarInt {
 fn get_chunk(val: u128) -> u8 {
     (val & MAX_VAL as u128) as u8
 }
-
 
 #[cfg(test)]
 mod tests {

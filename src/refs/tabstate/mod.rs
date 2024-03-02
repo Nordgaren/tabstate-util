@@ -5,6 +5,7 @@ use crate::consts::{
     SIZE_END_MARKER,
 };
 use crate::footer::TabStateFooter;
+use crate::header::Header;
 use crate::metadata::TabStateMetadata;
 use crate::refs::tabstate::cursor::TabStateCursor;
 use crate::refs::tabstate::saved::SavedRefs;
@@ -13,7 +14,6 @@ use crate::util;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
-use crate::header::Header;
 
 pub mod cursor;
 pub mod saved;

@@ -1,7 +1,7 @@
 use crate::consts::{MAX_VAL, SIGN_BIT};
+use crate::varint::VarInt;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
-use crate::varint::VarInt;
 
 #[derive(Copy, Clone)]
 pub struct VarIntRef<'a> {
