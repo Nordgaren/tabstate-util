@@ -1,3 +1,4 @@
+use std::io::{Error, ErrorKind};
 use crate::consts::{MAX_VAL, SIGN_BIT};
 use crate::refs::varint::VarIntRef;
 
@@ -22,13 +23,26 @@ impl VarInt {
         Self { buffer }
     }
     /// Copies the provided buffer to a new vector and returns a `VarInt`
-    pub fn from_buffer(buffer: &[u8]) -> VarInt {
+    pub fn from_buffer(buffer: &[u8]) -> std::io::Result<Self> {
+        if buffer.is_empty() {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "size buffer cannot be of length 0",
+            ));
+        }
+
+        Ok(Self {
+            buffer: buffer.to_vec(),
+        })
+    }
+    /// Copies the provided buffer to a new vector and returns a `VarInt`
+    pub(crate) unsafe fn from_buffer_unchecked(buffer: &[u8]) -> Self {
         Self {
             buffer: buffer.to_vec(),
         }
     }
     pub fn get_ref(&self) -> VarIntRef {
-        VarIntRef::new(&self.buffer[..])
+        unsafe { VarIntRef::new_unchecked(&self.buffer[..]) }
     }
     pub fn get_buffer(&self) -> &[u8] {
         &self.buffer[..]
@@ -37,6 +51,24 @@ impl VarInt {
     pub fn size_of(&self) -> usize {
         self.buffer.len()
     }
+    pub fn decode(&self) -> usize {
+        decode(self.get_buffer()) as usize
+    }
+    pub fn decode_lossless(&self) -> u128 {
+        decode(self.get_buffer())
+    }
+}
+
+pub fn decode(buffer: &[u8]) -> u128 {
+    let mut size = 0;
+    // We strip the sign bit off and bit shift the value to the right by 7 * i (since each byte only holds
+    // 7 bits of data and this is little endian, so the byte furthest to the left is the least significant byte.)
+    for (i, val) in buffer.iter().enumerate() {
+        let num = (*val & MAX_VAL) as u128;
+        size |= num << (7 * i);
+    }
+
+    size
 }
 
 fn get_chunk(val: u128) -> u8 {

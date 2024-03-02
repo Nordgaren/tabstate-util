@@ -41,7 +41,7 @@ impl<'a> TabStateRefs<'a> {
 
         // Get the VarInt for the text buffer size in UTF-16.
         let buffer_size = VarIntRef::from_reader(&br)?;
-        let decoded_size = buffer_size.decode()?;
+        let decoded_size = buffer_size.decode();
         if decoded_size == 0 {
             return Err(Error::new(ErrorKind::Unsupported, "Buffer file has unknown size. The TabState buffer doesn't get the size of the buffer until Notepad has been \"closed\". Currently unsupported"));
         }

@@ -111,7 +111,7 @@ impl<'a> TabStateRefs<'a> {
     fn read_saved_buffer(br: BufferReader<'a>, header: &'a Header) -> std::io::Result<Self> {
         // Get the file path.
         let file_path_len = VarIntRef::from_reader(&br)?;
-        let decoded_size = file_path_len.decode()?;
+        let decoded_size = file_path_len.decode();
         let str_bytes = br.read_bytes(decoded_size * 2)?;
         let file_path = util::wide_string_from_buffer(str_bytes, decoded_size);
 
@@ -171,7 +171,7 @@ impl<'a> TabStateRefs<'a> {
 
         // Get the VarInt for the text buffer size in UTF-16.
         let buffer_size = VarIntRef::from_reader(&br)?;
-        let decoded_size = buffer_size.decode()?;
+        let decoded_size = buffer_size.decode();
 
         // The text buffer should be right after the VarInt we just read. Double the size of bytes
         // to read, since the size is in UTF-16 chars
