@@ -9,8 +9,12 @@ use crate::util;
 /// Represents items that are only available in TabStates that represent a file on disk.
 #[derive(Copy, Clone)]
 pub struct SavedStateRefs<'a> {
+    /// Length of the file path in chars.
     file_path_len: VarIntRef<'a>,
+    /// File path as a wide string.  
     file_path: &'a WideStr,
+    /// The full size in chars of the text buffer on disk. This includes carriage returns, which are
+    /// not always represented in the TabState text buffer.
     full_buffer_size: VarIntRef<'a>,
     metadata: &'a TabStateMetadata,
 }

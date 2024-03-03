@@ -47,7 +47,8 @@ impl<'a> TabStateRefs<'a> {
             footer,
         }
     }
-    pub fn get_saved_tabstate_refs(&self) -> Option<SavedStateRefs> {
+    // Returns the `SavedStateRefs` for this object, if the buffer is in a saved state.
+    pub fn get_saved_state_refs(&self) -> Option<SavedStateRefs> {
         self.saved_refs
     }
     /// Get a reference to the cursor start VarInt.
@@ -70,6 +71,7 @@ impl<'a> TabStateRefs<'a> {
     pub fn get_footer(&self) -> &'a TabStateFooter {
         self.footer
     }
+    /// Parse the TabState file from a given buffer.
     pub fn from_buffer(buffer: &'a [u8]) -> std::io::Result<Self> {
         let br = BufferReader::new(buffer);
 
@@ -150,7 +152,7 @@ impl<'a> TabStateRefs<'a> {
         // and how many.
         if !br.is_empty() {
             eprintln!(
-                "Please report on GH issues: Bytes still remaining in the buffer: {}\n",
+                "Please report on GH issues: Bytes still remaining in the buffer: {}",
                 br.len(),
             );
             eprintln!("Please send me your buffer file, as well, so I can see what is wrong!")

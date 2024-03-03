@@ -19,10 +19,18 @@ impl<'a> TabStateCursor<'a> {
     pub fn get_cursor_start(&'a self) -> VarIntRef<'a> {
         self.cursor_start
     }
+    /// Decodes the cursor start position
+    pub fn decode_cursor_start(&'a self) -> usize {
+        self.cursor_start.decode()
+    }
     /// Get a reference to the cursor end VarInt that represents the size of the text file on disk,
     /// if available.
     pub fn get_cursor_end(&'a self) -> VarIntRef<'a> {
         self.cursor_end
+    }
+    /// Decodes the cursor end position
+    pub fn decode_cursor_end(&'a self) -> usize {
+        self.cursor_end.decode()
     }
     /// Returns true if the cursor start and cursor end varints are not the same
     pub fn is_selection(&self) -> bool {
