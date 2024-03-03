@@ -2,7 +2,6 @@ use crate::consts::SIGN_BIT;
 use crate::varint::VarInt;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
-use crate::varint;
 
 /// A reference to a slice of bytes that represent a variable sized integer.
 #[derive(Copy, Clone, PartialEq)]
@@ -43,11 +42,11 @@ impl<'a> VarIntRef<'a> {
     }
     /// Decodes a varint from the provided bytes
     pub fn decode(&self) -> usize {
-        varint::decode(self.buffer) as usize
+        crate::varint::decode(self.buffer) as usize
     }
     /// Decodes a varint from the provided bytes. Uses the largest int primitive available.
     pub fn decode_lossless(&self) -> u128 {
-        varint::decode(self.buffer)
+        crate::varint::decode(self.buffer)
     }
     pub fn get_buffer(&self) -> &[u8] {
         self.buffer

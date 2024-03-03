@@ -18,8 +18,8 @@ pub enum CarriageType {
 pub struct TabStateMetadata {
     pub encoding: Encoding,
     pub return_carriage: CarriageType,
-    pub unk: [u8; 0x6],
-    pub unk_two: [u8; 0x24],
+    pub unk_possibly_timestamp: [u8; 0x8],
+    pub unk_two: [u8; 0x22],
 }
 pub const METADATA_STRUCTURE_SIZE: usize = 0x2C;
 const _: () = assert!(std::mem::size_of::<TabStateMetadata>() == METADATA_STRUCTURE_SIZE);
