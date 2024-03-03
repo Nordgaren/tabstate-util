@@ -12,13 +12,13 @@ The tab buffers are located in `%localappdata%\Packages\Microsoft.WindowsNotepad
 Thank you to [@nas_bench](https://twitter.com/nas_bench) and [@_JohnHammond](https://twitter.com/_JohnHammond) for cluing 
 me into this location. [nas bench tweet](https://twitter.com/nas_bench/status/1725658060104913019).  
 
-Read one of the files and pass it in to `NPBufferReader::new()` as a slice. Call the `get_refs()` method to get references 
+Read one of the files and pass it in to `TabStateReader::new()` as a slice. Call the `get_refs()` method to get references 
 to parts of the buffer.
 
-There are some printlines for things I am not sure about, so if you see this print some extra lines in your console, please
+There are some print lines for things I am not sure about, so if you see this print some extra lines in your console, please
 let me know, so I can check out what is wrong.
 
-The `NPBufferReader` type is there for the future. This type will handle other stuff, later, probably. Right now it just
+The `TabStateReader` type is there for the future. This type will handle other stuff, later, probably. Right now it just
 checks that you aren't passing in an empty buffer. I will probably change it to also check the magic bytes.
 
 ```rust
