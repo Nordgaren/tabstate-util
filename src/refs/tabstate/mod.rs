@@ -1,11 +1,9 @@
 #![doc = "TabState references to each part of a TabState file. This is generic, so some parts are optional"]
 
-use crate::consts::{
-    FILE_STATE_SAVED, FILE_STATE_UNSAVED, CURSOR_START_MARKER,
-    CURSOR_END_MARKER,
-};
+use crate::consts::{CURSOR_END_MARKER, CURSOR_START_MARKER, FILE_STATE_SAVED, FILE_STATE_UNSAVED};
 use crate::footer::TabStateFooter;
 use crate::header::Header;
+use crate::refs::tabstate::buffer::TextBufferRef;
 use crate::refs::tabstate::cursor::TabStateCursor;
 use crate::refs::tabstate::saved::SavedStateRefs;
 use crate::refs::varint::VarIntRef;
@@ -14,6 +12,7 @@ use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
 
+mod buffer;
 pub mod cursor;
 pub mod saved;
 
@@ -23,8 +22,7 @@ pub struct TabStateRefs<'a> {
     header: &'a Header,
     saved_refs: Option<SavedStateRefs<'a>>,
     cursor: TabStateCursor<'a>,
-    buffer_size: VarIntRef<'a>,
-    text_buffer: &'a WideStr,
+    text_buffer: TextBufferRef<'a>,
     footer: &'a TabStateFooter,
 }
 
@@ -34,15 +32,13 @@ impl<'a> TabStateRefs<'a> {
         header: &'a Header,
         saved_refs: Option<SavedStateRefs<'a>>,
         cursor: TabStateCursor<'a>,
-        buffer_size: VarIntRef<'a>,
-        text_buffer: &'a WideStr,
+        text_buffer: TextBufferRef<'a>,
         footer: &'a TabStateFooter,
     ) -> TabStateRefs<'a> {
         Self {
             header,
             saved_refs,
             cursor,
-            buffer_size,
             text_buffer,
             footer,
         }
@@ -60,12 +56,12 @@ impl<'a> TabStateRefs<'a> {
         self.cursor.get_cursor_end()
     }
     /// Get a reference to the main text buffer size for the TabState.
-    pub fn get_buffer_size(&'a self) -> VarIntRef<'a> {
-        self.buffer_size
+    pub fn get_buffer_len(&'a self) -> VarIntRef<'a> {
+        self.text_buffer.get_buffer_len()
     }
     /// Get a reference to the main text buffer for the TabState.
     pub fn get_buffer(&self) -> &'a WideStr {
-        self.text_buffer
+        self.text_buffer.get_buffer()
     }
     /// Get a reference to the footer for the file.
     pub fn get_footer(&self) -> &'a TabStateFooter {
@@ -162,8 +158,7 @@ impl<'a> TabStateRefs<'a> {
             header,
             saved_refs,
             TabStateCursor::new(cursor_start, cursor_end),
-            buffer_size,
-            text_buffer,
+            TextBufferRef::new(buffer_size, text_buffer),
             footer,
         ))
     }

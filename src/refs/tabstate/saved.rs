@@ -1,18 +1,17 @@
-use std::io::{Error, ErrorKind};
-use buffer_reader::BufferReader;
-use crate::metadata::TabStateMetadata;
-use crate::refs::varint::VarIntRef;
-use widestring::WideStr;
 use crate::consts::{CARRIAGE_TYPES, ENCODINGS};
+use crate::metadata::TabStateMetadata;
+use crate::refs::tabstate::buffer::TextBufferRef;
+use crate::refs::varint::VarIntRef;
 use crate::util;
+use buffer_reader::BufferReader;
+use std::io::{Error, ErrorKind};
+use widestring::WideStr;
 
 /// Represents items that are only available in TabStates that represent a file on disk.
 #[derive(Copy, Clone)]
 pub struct SavedStateRefs<'a> {
-    /// Length of the file path in chars.
-    file_path_len: VarIntRef<'a>,
-    /// File path as a wide string.  
-    file_path: &'a WideStr,
+    /// File path as a wide string.
+    file_path: TextBufferRef<'a>,
     /// The full size in chars of the text buffer on disk. This includes carriage returns, which are
     /// not always represented in the TabState text buffer.
     full_buffer_size: VarIntRef<'a>,
@@ -21,13 +20,11 @@ pub struct SavedStateRefs<'a> {
 
 impl<'a> SavedStateRefs<'a> {
     pub fn new(
-        file_path_len: VarIntRef<'a>,
-        file_path: &'a WideStr,
+        file_path: TextBufferRef<'a>,
         full_buffer_size: VarIntRef<'a>,
         metadata: &'a TabStateMetadata,
     ) -> Self {
         Self {
-            file_path_len,
             file_path,
             full_buffer_size,
             metadata,
@@ -68,17 +65,21 @@ impl<'a> SavedStateRefs<'a> {
             ));
         }
 
-        Ok(SavedStateRefs::new(file_path_len, file_path, full_buffer_size, metadata))
+        Ok(SavedStateRefs::new(
+            TextBufferRef::new(file_path_len, file_path),
+            full_buffer_size,
+            metadata,
+        ))
     }
     /// Get a reference to the file path len VarInt that represents the size in chars of the text file
     /// path
     pub fn get_file_path_len(&'a self) -> VarIntRef<'a> {
-        self.file_path_len
+        self.file_path.get_buffer_len()
     }
     /// Get a reference to the path of the file this TabState represents. Unsaved files do not have
     /// a path.
     pub fn get_path(&self) -> &'a WideStr {
-        self.file_path
+        self.file_path.get_buffer()
     }
     /// Get a reference to the full buffer size VarInt that represents the size in charsof the text
     /// file on disk, if available.

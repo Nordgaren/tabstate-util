@@ -1,5 +1,8 @@
+use bytemuck::AnyBitPattern;
+
 /// I am pretty sure the footer is this size.
 #[repr(C)]
+#[derive(Copy, Clone, AnyBitPattern)]
 pub struct TabStateFooter {
     pub the_number_zero: u8,
     pub unk: [u8; 4],
