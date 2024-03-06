@@ -11,7 +11,7 @@ use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
 
-mod buffer;
+pub mod buffer;
 pub mod cursor;
 pub mod saved;
 
