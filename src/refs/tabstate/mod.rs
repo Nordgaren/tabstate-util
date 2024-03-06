@@ -7,7 +7,6 @@ use crate::refs::tabstate::buffer::TextBufferRef;
 use crate::refs::tabstate::cursor::TabStateCursor;
 use crate::refs::tabstate::saved::SavedStateRefs;
 use crate::refs::varint::VarIntRef;
-use crate::util;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
@@ -135,10 +134,9 @@ impl<'a> TabStateRefs<'a> {
         let buffer_size = VarIntRef::from_reader(&br)?;
         let decoded_size = buffer_size.decode();
 
-        // The text buffer should be right after the VarInt we just read. Double the size of bytes
-        // to read, since the size is in UTF-16 chars
-        let text_buffer = br.read_bytes(decoded_size * 2)?;
-        let text_buffer = util::wide_string_from_buffer(text_buffer, decoded_size);
+        // The text buffer should be right after the VarInt we just read.
+        let text_buffer = br.read_slice_t(decoded_size)?;
+        let text_buffer = WideStr::from_slice(text_buffer);
 
         // It always ends with this footer. I am not sure if it's there if there's extra data, as there
         // sometimes is extra data. It might still be after the text buffer AND at the end of the file.

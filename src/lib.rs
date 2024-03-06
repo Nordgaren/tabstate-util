@@ -3,7 +3,6 @@ pub mod footer;
 pub mod header;
 pub mod metadata;
 pub mod refs;
-mod util;
 pub mod varint;
 
 use crate::consts::*;

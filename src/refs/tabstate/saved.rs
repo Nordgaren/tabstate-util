@@ -2,7 +2,6 @@ use crate::consts::{CARRIAGE_TYPES, ENCODINGS};
 use crate::metadata::TabStateMetadata;
 use crate::refs::tabstate::buffer::TextBufferRef;
 use crate::refs::varint::VarIntRef;
-use crate::util;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
@@ -32,12 +31,12 @@ impl<'a> SavedStateRefs<'a> {
     }
     pub fn from_reader(br: &BufferReader<'a>) -> std::io::Result<Self> {
         // Get the file path.
-        let file_path_len = VarIntRef::from_reader(&br)?;
+        let file_path_len = VarIntRef::from_reader(br)?;
         let decoded_size = file_path_len.decode();
-        let str_bytes = br.read_bytes(decoded_size * 2)?;
-        let file_path = util::wide_string_from_buffer(str_bytes, decoded_size);
+        let str_bytes = br.read_slice_t(decoded_size)?;
+        let file_path = WideStr::from_slice(str_bytes);
 
-        let full_buffer_size = VarIntRef::from_reader(&br)?;
+        let full_buffer_size = VarIntRef::from_reader(br)?;
 
         // Get the main metadata object
         let metadata = br.read_t::<TabStateMetadata>()?;
