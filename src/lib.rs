@@ -70,9 +70,8 @@ mod tests {
     const BUFFER_PATH: &str = concat!(
         env!("localappdata"),
         r"\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState\",
-        "fd86c273-1b2e-4375-937b-8b8513bbd50a.bin" // You should be able to just change this file name.
+        "0c07e304-0604-4438-941d-0977da045fd9.bin" // You should be able to just change this file name.
     );
-
     /// Should not panic
     #[test]
     fn read_tabstate() {

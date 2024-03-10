@@ -1,0 +1,83 @@
+//------------------------------------------------
+//--- 010 Editor v14.0 Binary Template
+//
+//      File: TabState
+//   Authors: Nordgaren
+//   Version: 1
+//   Purpose: Parses a TabState file from Windows 11 Notepad.
+//  ID Bytes: NP
+//------------------------------------------------
+//                   Structs
+//------------------------------------------------
+
+typedef struct {
+    uint16  magic       <comment="Header Magic = 0x504E",format=hex>;
+    ubyte   null;
+    ubyte   state       <comment="state of the file">;
+} Header <style=sHeading1>;
+
+typedef struct {
+    do {
+        ubyte bytes;
+    } while (bytes > 0x7f);
+} Uleb128 <bgcolor=cRed, read=Uleb128ValueToStr>;
+
+typedef struct {
+    ubyte encoding      <bgcolor=0x00FFFF>;
+    ubyte carriage_type <bgcolor=0xFFFF00>;
+    Uleb128 file_time;   
+    ubyte content_hash[0x20] <bgcolor=0xFF00AA, format=hex>;
+    ubyte unk; 
+} Metadata <bgcolor=cGreen>;
+
+typedef struct {
+    ubyte null;
+    uint32 crc32 <format=hex>;
+} Footer <bgcolor=0xFFFF00>;
+
+//------------------------------------------------
+//                   Funcs
+//------------------------------------------------
+
+uint64 DecodeUleb128(Uleb128 &varint) {
+    local uint64 val = 0;
+    local int i;
+    local uint64 num;
+    for( i = 0; i < sizeof(varint); i++ ) {
+        num = varint.bytes[i] & 0x7F;
+        val |= num << (i * 7);
+    }
+    return val;
+}
+string Uleb128ValueToStr(Uleb128 &varint) {
+    return Str("0x%X", DecodeUleb128(varint));
+}
+//------------------------------------------------
+//                   Parse
+//------------------------------------------------
+
+Header header;
+
+if (header.state == 1) {
+    // File Path
+    Uleb128 path_size               <comment="Size of the path to the file in chars.">;
+    local uint64 decoded_size = DecodeUleb128(path_size);
+    ushort path[decoded_size]       <bgcolor=cBlue>;
+    
+    // Unmodified buffer size
+    Uleb128 full_buffer_size        <comment="Full size of the text buffer, including missing characters for carraige return, etc.">;
+    Metadata metadata;
+}
+
+// Cursor
+ubyte cursor_marker                 <comment="Should be value 1", bgcolor=cWhite>; 
+Uleb128 cursor_start                <comment="Cursor Start Position.">;
+Uleb128 cursor_end                  <comment="Cursor End Position.">;
+uint32 cursor_marker_end            <comment="Should be value 1", bgcolor=cWhite>;
+
+// Main Text Buffer
+Uleb128 buffer_size                 <comment="Full size of the following text buffer.">;
+local uint64 decoded_buffer_size = DecodeUleb128(buffer_size);
+ushort buffer[decoded_buffer_size]  <bgcolor=cBlue>;
+
+Footer footer;

@@ -27,8 +27,9 @@ unsafe impl AnyBitPattern for CarriageType {}
 pub struct TabStateMetadata {
     pub encoding: Encoding,
     pub return_carriage: CarriageType,
-    pub unk_possibly_timestamp: [u8; 0x8],
-    pub unk_two: [u8; 0x22],
+    pub filetime_as_varint: [u8; 0x9],
+    pub content_hash: [u8; 0x20],
+    pub unk: [u8; 0x1],
 }
 pub const METADATA_STRUCTURE_SIZE: usize = 0x2C;
 
