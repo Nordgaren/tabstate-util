@@ -1,6 +1,6 @@
-use std::io::{Error, ErrorKind};
 use crate::consts::{MAX_VAL, SIGN_BIT};
 use crate::refs::varint::VarIntRef;
+use std::io::{Error, ErrorKind};
 
 /// An integer that doesn't have a size in bytes at compile time.
 pub struct VarInt {

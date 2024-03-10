@@ -7,6 +7,5 @@ edition = "2021"
 
 [dependencies]
 buffer-reader = { git = "https://github.com/Nordgaren/buffer-reader.git" }
-#buffer-reader = { path = "../buffer-reader" }
 widestring = "1.0.2"
 bytemuck = { version = "1.14.3", features = ["derive", "min_const_generics"] }

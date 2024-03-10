@@ -142,8 +142,7 @@ impl<'a> TabStateRefs<'a> {
         // sometimes is extra data. It might still be after the text buffer AND at the end of the file.
         let footer = br.read_t()?;
 
-        // Check that there are no bytes remaining in the buffer. If there are, print out the bytes
-        // and how many.
+        // Check that there are no bytes remaining in the buffer. If there are, print out how many.
         if !br.is_empty() {
             eprintln!(
                 "Please report on GH issues: Bytes still remaining in the buffer: {}",

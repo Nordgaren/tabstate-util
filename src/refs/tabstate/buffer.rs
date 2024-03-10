@@ -1,5 +1,5 @@
-use widestring::WideStr;
 use crate::refs::varint::VarIntRef;
+use widestring::WideStr;
 #[derive(Copy, Clone)]
 pub struct TextBufferRef<'a> {
     buffer_len: VarIntRef<'a>,
