@@ -4,8 +4,10 @@
 //      File: TabState
 //   Authors: Nordgaren
 //   Version: 1
-//   Purpose: Parses a TabState file from Windows 11 Notepad.
+//   Purpose: Parses a TabState file for Windows
+//            11 Notepad.
 //  ID Bytes: NP
+//
 //------------------------------------------------
 //                   Structs
 //------------------------------------------------
@@ -19,14 +21,14 @@ typedef struct {
 typedef struct {
     do {
         ubyte bytes;
-    } while (bytes > 0x7f);
+    } while (bytes > 0x7F);
 } Uleb128 <bgcolor=cRed, read=Uleb128ValueToStr>;
 
 typedef struct {
-    ubyte encoding      <bgcolor=0x00FFFF>;
-    ubyte carriage_type <bgcolor=0xFFFF00>;
+    ubyte encoding              <bgcolor=0x00FFFF>;
+    ubyte carriage_type         <bgcolor=0xFFFF00>;
     Uleb128 file_time;   
-    ubyte content_hash[0x20] <bgcolor=0xFF00AA, format=hex>;
+    ubyte content_hash[0x20]    <bgcolor=0xFF00AA, format=hex>;
     ubyte unk; 
 } Metadata <bgcolor=cGreen>;
 
@@ -49,9 +51,11 @@ uint64 DecodeUleb128(Uleb128 &varint) {
     }
     return val;
 }
+
 string Uleb128ValueToStr(Uleb128 &varint) {
     return Str("0x%X", DecodeUleb128(varint));
 }
+
 //------------------------------------------------
 //                   Parse
 //------------------------------------------------

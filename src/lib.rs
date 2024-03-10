@@ -1,7 +1,7 @@
 pub mod consts;
 pub mod footer;
 pub mod header;
-pub mod metadata;
+pub mod enums;
 pub mod refs;
 pub mod varint;
 

@@ -14,6 +14,7 @@ use widestring::WideStr;
 pub mod buffer;
 pub mod cursor;
 pub mod saved;
+pub mod metadata;
 
 /// A structure tht holds references to the data in a Notepad buffer.
 #[allow(unused)]

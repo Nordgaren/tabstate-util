@@ -1,10 +1,10 @@
 use crate::consts::{CARRIAGE_TYPES, ENCODINGS};
-use crate::metadata::TabStateMetadata;
 use crate::refs::tabstate::buffer::TextBufferRef;
 use crate::refs::varint::VarIntRef;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
+use crate::refs::tabstate::metadata::TabStateMetadata;
 
 /// Represents items that are only available in TabStates that represent a file on disk.
 #[derive(Copy, Clone)]
@@ -14,14 +14,14 @@ pub struct SavedStateRefs<'a> {
     /// The full size in chars of the text buffer on disk. This includes carriage returns, which are
     /// not always represented in the TabState text buffer.
     full_buffer_size: VarIntRef<'a>,
-    metadata: &'a TabStateMetadata,
+    metadata: TabStateMetadata<'a>,
 }
 
 impl<'a> SavedStateRefs<'a> {
     pub fn new(
         file_path: TextBufferRef<'a>,
         full_buffer_size: VarIntRef<'a>,
-        metadata: &'a TabStateMetadata,
+        metadata: TabStateMetadata<'a>,
     ) -> Self {
         Self {
             file_path,
@@ -39,10 +39,10 @@ impl<'a> SavedStateRefs<'a> {
         let full_buffer_size = VarIntRef::from_reader(br)?;
 
         // Get the main metadata object
-        let metadata = br.read_t::<TabStateMetadata>()?;
+        let metadata = TabStateMetadata::from_reader(br)?;
 
         // The metadata structure starts with the encoding
-        let encoding = metadata.encoding as u8;
+        let encoding = *metadata.encoding as u8;
         if !ENCODINGS.contains(&encoding) {
             return Err(Error::new(
                 ErrorKind::InvalidData,
@@ -53,7 +53,7 @@ impl<'a> SavedStateRefs<'a> {
             ));
         }
         // Then the return carriage type
-        let return_carriage = metadata.return_carriage as u8;
+        let return_carriage = *metadata.return_carriage as u8;
         if !CARRIAGE_TYPES.contains(&return_carriage) {
             return Err(Error::new(
                 ErrorKind::InvalidData,
@@ -86,7 +86,7 @@ impl<'a> SavedStateRefs<'a> {
         self.full_buffer_size
     }
     /// Get a reference to the metadata structure, if available.
-    pub fn get_metadata(&self) -> &'a TabStateMetadata {
+    pub fn get_metadata(&self) -> TabStateMetadata<'a> {
         self.metadata
     }
 }
