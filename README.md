@@ -55,11 +55,13 @@ Also shout out to John Hammond who told me the unsaved buffers are different whe
 have enjoyed every minute of it!
 [vswarte](https://github.com/vswarte) - For misc reasons including figuring out my varint issue.  
 [notarib-catcher](https://github.com/notarib-catcher) - Started the issue that helped organize the rest of the collaborators
-and shared their insights at the start of this, which helped greatly  
+and shared their insights at the start of this, which helped greatly.  
 [JustArion](https://github.com/JustArion) - Identified the FileTime and sha256 hash bytes! Never would have though they would 
 store FileTime as a varint, but.... Microsoft..  
 [ogmini](https://github.com/ogmini) - For passing on info from their research on this format, that they are documenting 
-[here](https://github.com/ogmini/Notepad-Tabstate-Buffer)  
+[here](https://github.com/ogmini/Notepad-Tabstate-Buffer).  
+[joost-j](https://github.com/joost-j) - Thank you for starting the python dissect PR which lead to a lot of good discussion
+and discovery!  
 
 ## Todo
 > Figure out any inkling of how the unsaved buffers work before notepad has closed, so I can figure out how to read them.  
