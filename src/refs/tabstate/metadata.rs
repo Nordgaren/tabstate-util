@@ -5,6 +5,7 @@ use crate::refs::varint::VarIntRef;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
 use widestring::WideStr;
+
 #[derive(Copy, Clone)]
 pub struct TabStateMetadata<'a> {
     /// File path as a wide string.
@@ -39,7 +40,7 @@ impl<'a> TabStateMetadata<'a> {
             unk,
         }
     }
-    pub fn from_reader(br: &BufferReader<'a>) -> std::io::Result<Self> {
+    pub fn from_reader(br: &mut BufferReader<'a>) -> std::io::Result<Self> {
         // Get the file path.
         let file_path = TabStateBufferRef::from_reader(br)?;
 

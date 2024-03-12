@@ -4,6 +4,7 @@ pub mod footer;
 pub mod header;
 pub mod refs;
 pub mod varint;
+pub mod options;
 
 use crate::consts::*;
 use crate::refs::tabstate::TabStateRefs;

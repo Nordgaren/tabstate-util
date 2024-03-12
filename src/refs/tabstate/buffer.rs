@@ -11,7 +11,7 @@ impl<'a> TabStateBufferRef<'a> {
     pub fn new(buffer_len: VarIntRef<'a>, buffer: &'a WideStr) -> Self {
         TabStateBufferRef { buffer_len, buffer }
     }
-    pub fn from_reader(br: &BufferReader<'a>) -> std::io::Result<Self> {
+    pub fn from_reader(br: &mut BufferReader<'a>) -> std::io::Result<Self> {
         // Length comes first
         let buffer_len = VarIntRef::from_reader(br)?;
         let decoded_size = buffer_len.decode();

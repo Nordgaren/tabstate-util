@@ -26,7 +26,7 @@ impl<'a> VarIntRef<'a> {
     }
     /// Assumes the reader is at the start of a varint. Reads the sign bit of each byte and advances
     /// until the end of the varint and passes back a reference to the bytes as a `VarIntRef`
-    pub fn from_reader(br: &BufferReader<'a>) -> std::io::Result<Self> {
+    pub fn from_reader(br: &mut BufferReader<'a>) -> std::io::Result<Self> {
         // Get the bytes that represent the size of the text buffer and decode the size.
         let mut count = 0;
 

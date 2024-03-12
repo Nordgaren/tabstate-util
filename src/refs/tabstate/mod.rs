@@ -68,7 +68,7 @@ impl<'a> TabStateRefs<'a> {
     }
     /// Parse the TabState file from a given buffer.
     pub fn from_buffer(buffer: &'a [u8]) -> std::io::Result<Self> {
-        let br = BufferReader::new(buffer);
+        let mut br = BufferReader::new(buffer);
 
         let header = br.read_t::<Header>()?;
 
