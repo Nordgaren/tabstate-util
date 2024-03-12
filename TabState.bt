@@ -50,7 +50,7 @@ typedef struct {
     ubyte right_to_left;
     ubyte show_unicode_control;
     ubyte unk;
-} Options <bgcolor=cWhite>;
+} TabStateOptions <bgcolor=cWhite>;
 
 typedef struct {
     ubyte null;
@@ -93,7 +93,7 @@ if (header.state == 1) {
 
 // Cursor
 CursorData cursor                   <comment="Cursor Start and End Position. Same position if no selection">;
-Options options;
+TabStateOptions options;
 
 // Main Text Buffer
 TabStateBuffer buffer               <comment="Full size of the following text buffer.">;
