@@ -3,9 +3,9 @@
 use crate::consts::{CURSOR_END_MARKER, CURSOR_START_MARKER, FILE_STATE_SAVED, FILE_STATE_UNSAVED};
 use crate::footer::TabStateFooter;
 use crate::header::Header;
-use crate::refs::tabstate::buffer::TextBufferRef;
+use crate::refs::tabstate::buffer::TabStateBufferRef;
 use crate::refs::tabstate::cursor::TabStateCursor;
-use crate::refs::tabstate::saved::SavedStateRefs;
+use crate::refs::tabstate::metadata::TabStateMetadata;
 use crate::refs::varint::VarIntRef;
 use buffer_reader::BufferReader;
 use std::io::{Error, ErrorKind};
@@ -13,16 +13,15 @@ use widestring::WideStr;
 
 pub mod buffer;
 pub mod cursor;
-pub mod saved;
 pub mod metadata;
 
 /// A structure tht holds references to the data in a Notepad buffer.
 #[allow(unused)]
 pub struct TabStateRefs<'a> {
     header: &'a Header,
-    saved_refs: Option<SavedStateRefs<'a>>,
+    metadata: Option<TabStateMetadata<'a>>,
     cursor: TabStateCursor<'a>,
-    text_buffer: TextBufferRef<'a>,
+    text_buffer: TabStateBufferRef<'a>,
     footer: &'a TabStateFooter,
 }
 
@@ -30,22 +29,22 @@ impl<'a> TabStateRefs<'a> {
     /// Returns a new `TabStateRefs` object containing the provided refs.
     pub fn new(
         header: &'a Header,
-        saved_refs: Option<SavedStateRefs<'a>>,
+        metadata: Option<TabStateMetadata<'a>>,
         cursor: TabStateCursor<'a>,
-        text_buffer: TextBufferRef<'a>,
+        text_buffer: TabStateBufferRef<'a>,
         footer: &'a TabStateFooter,
     ) -> TabStateRefs<'a> {
         Self {
             header,
-            saved_refs,
+            metadata,
             cursor,
             text_buffer,
             footer,
         }
     }
     // Returns the `SavedStateRefs` for this object, if the buffer is in a saved state.
-    pub fn get_saved_state_refs(&self) -> Option<SavedStateRefs> {
-        self.saved_refs
+    pub fn get_metadata(&self) -> Option<TabStateMetadata> {
+        self.metadata
     }
     /// Get a reference to the cursor start VarInt.
     pub fn get_cursor_start(&'a self) -> VarIntRef<'a> {
@@ -89,7 +88,7 @@ impl<'a> TabStateRefs<'a> {
         // We have to match as u8s, otherwise the compiler thinks the final case is unreachable, which
         // is not true in this case, and the code will be optimized out.
         let saved_refs = match header.state as u8 {
-            FILE_STATE_SAVED => Some(SavedStateRefs::from_reader(&br)?),
+            FILE_STATE_SAVED => Some(TabStateMetadata::from_reader(&br)?),
             FILE_STATE_UNSAVED => None,
             file_state => return Err(Error::new(
                 ErrorKind::Unsupported,
@@ -131,13 +130,8 @@ impl<'a> TabStateRefs<'a> {
             ));
         };
 
-        // Get the VarInt for the text buffer size in UTF-16.
-        let buffer_size = VarIntRef::from_reader(&br)?;
-        let decoded_size = buffer_size.decode();
-
-        // The text buffer should be right after the VarInt we just read.
-        let text_buffer = br.read_slice_t(decoded_size)?;
-        let text_buffer = WideStr::from_slice(text_buffer);
+        // This is the main text buffer in the TabState.
+        let text_buffer = TabStateBufferRef::from_reader(&br)?;
 
         // It always ends with this footer. I am not sure if it's there if there's extra data, as there
         // sometimes is extra data. It might still be after the text buffer AND at the end of the file.
@@ -156,7 +150,7 @@ impl<'a> TabStateRefs<'a> {
             header,
             saved_refs,
             TabStateCursor::new(cursor_start, cursor_end),
-            TextBufferRef::new(buffer_size, text_buffer),
+            text_buffer,
             footer,
         ))
     }

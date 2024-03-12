@@ -1,7 +1,7 @@
 pub mod consts;
+pub mod enums;
 pub mod footer;
 pub mod header;
-pub mod enums;
 pub mod refs;
 pub mod varint;
 
@@ -96,7 +96,7 @@ mod tests {
                 Ok(p) => p,
                 Err(_) => continue,
             };
-            //println!("{path:?}");
+            // println!("{path:?}");
 
             let buffer = std::fs::read(path.path()).unwrap();
             let np = match TabStateReader::new(&buffer[..]) {

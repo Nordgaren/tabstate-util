@@ -4,7 +4,9 @@ A buffer reader for notepad TabState buffers.
 > This project is in early development. Things may change. Sorry for any inconvenience.
 
 ## Does it work?
-Lmao
+~~Lmao~~  
+It works for the most part, now. Check below. There is still data that doesn't get parsed, and I probably have a few definitions
+incorrect, but for now it does work for the most part. Still need to figure out the multi-buffer stuff.    
 
 ## How do I use it?
 The tab buffers are located in `%localappdata%\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState`.
@@ -22,14 +24,14 @@ The `TabStateReader` type is there for the future. This type will handle other s
 checks that you aren't passing in an empty buffer. I will probably change it to also check the magic bytes.
 
 ```rust
-fn get_tab_state_buffer<'a>(buffer: &'a [u8]) -> std::io::Result<TabStateRefs<'a>> {
+fn get_tab_state_refs<'a>(buffer: &'a [u8]) -> std::io::Result<TabStateRefs<'a>> {
     let np = TabStateReader::new(buffer)?;
     np.get_refs()
 }
 
 fn main() {
     let file = std::fs::read_dir(r"P:/ath/to/notepad/tabstate/buffer.bin").unwrap();
-    let refs = get_tab_state_buffer(&file[..]).expect("Could not read TabState buffer.");
+    let refs = get_tab_state_refs(&file[..]).expect("Could not read TabState buffer.");
     
     println!("{:?}", refs.get_path().unwrap_or_default());
     println!("{:?}", refs.get_buffer());
@@ -37,7 +39,7 @@ fn main() {
 ```
 
 ## How can I contribute?
-Open a github issue, or message me on discord. Name on Disorc is `Nordgaren`. GitHub issues is easier. If I don't get to 
+Open a github issue, or message me on discord. Name on Discord is `Nordgaren`. GitHub issues is easier. If I don't get to 
 you on Discord you can @ me in any shared server we have. I am in John Hammonds Discord. You can also try e-mailing me at 
 `nordgarentv@gmail.com`
 
@@ -47,7 +49,17 @@ notepad makes. I have generated some unsaved tab buffers, and started the proces
 
 Also shout out to John Hammond who told me the unsaved buffers are different when notepad closes! Huzzah! WTH?!
 
-Also shoutout to [vswarte](https://github.com/vswarte) for misc reasons including figuring out my varint issue.  
+# Thank You
+[@nas_bench](https://twitter.com/nas_bench) - or this tweet [nas bench tweet](https://twitter.com/nas_bench/status/1725658060104913019)  
+[@_JohnHammond](https://twitter.com/_JohnHammond) - Showed me the above tweet and asked me to look into this format, and I 
+have enjoyed every minute of it!
+[vswarte](https://github.com/vswarte) - For misc reasons including figuring out my varint issue.  
+[notarib-catcher](https://github.com/notarib-catcher) - Started the issue that helped organize the rest of the collaborators
+and shared their insights at the start of this, which helped greatly  
+[JustArion](https://github.com/JustArion) - Identified the FileTime and sha256 hash bytes! Never would have though they would 
+store FileTime as a varint, but.... Microsoft..  
+[ogmini](https://github.com/ogmini) - For passing on info from their research on this format, that they are documenting 
+[here](https://github.com/ogmini/Notepad-Tabstate-Buffer)  
 
 ## Todo
 > Figure out any inkling of how the unsaved buffers work before notepad has closed, so I can figure out how to read them.  

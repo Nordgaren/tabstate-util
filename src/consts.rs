@@ -1,5 +1,5 @@
-use crate::header::State;
 use crate::enums::{CarriageType, Encoding};
+use crate::header::State;
 
 pub const FILE_STATE_SAVED: u8 = State::Saved as u8;
 pub const FILE_STATE_UNSAVED: u8 = State::Unsaved as u8;

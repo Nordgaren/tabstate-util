@@ -9,6 +9,8 @@
 //  ID Bytes: NP
 //
 //------------------------------------------------
+
+//------------------------------------------------
 //                   Structs
 //------------------------------------------------
 
@@ -25,12 +27,21 @@ typedef struct {
 } Uleb128 <bgcolor=cRed, read=Uleb128ValueToStr>;
 
 typedef struct {
+    Uleb128  size                       <comment="Size of the buffer",format=hex>;
+    ushort buffer[DecodeUleb128(size)]  <bgcolor=cBlue>;
+} TabStateBuffer <style=sHeading1>;
+
+typedef struct {
     ubyte encoding              <bgcolor=0x00FFFF>;
     ubyte carriage_type         <bgcolor=0xFFFF00>;
     Uleb128 file_time;   
     ubyte content_hash[0x20]    <bgcolor=0xFF00AA, format=hex>;
     ubyte unk; 
 } Metadata <bgcolor=cGreen>;
+typedef struct {
+    Uleb128 cursor_start                <comment="Cursor Start Position.">;
+    Uleb128 cursor_end                  <comment="Cursor End Position.">;
+} CursorData;
 
 typedef struct {
     ubyte null;
@@ -64,24 +75,19 @@ Header header;
 
 if (header.state == 1) {
     // File Path
-    Uleb128 path_size               <comment="Size of the path to the file in chars.">;
-    local uint64 decoded_size = DecodeUleb128(path_size);
-    ushort path[decoded_size]       <bgcolor=cBlue>;
+    TabStateBuffer path             <comment="UTF-16 representation of the file path for this tabs underlying file.">;
     
     // Unmodified buffer size
-    Uleb128 full_buffer_size        <comment="Full size of the text buffer, including missing characters for carraige return, etc.">;
+    Uleb128 full_buffer_size        <comment="Full size of the text buffer, including missing characters for carriage return, etc.">;
     Metadata metadata;
 }
 
 // Cursor
 ubyte cursor_marker                 <comment="Should be value 1", bgcolor=cWhite>; 
-Uleb128 cursor_start                <comment="Cursor Start Position.">;
-Uleb128 cursor_end                  <comment="Cursor End Position.">;
+CursorData cursor                   <comment="Cursor Start and End Position. Same position if no selection">;
 uint32 cursor_marker_end            <comment="Should be value 1", bgcolor=cWhite>;
 
 // Main Text Buffer
-Uleb128 buffer_size                 <comment="Full size of the following text buffer.">;
-local uint64 decoded_buffer_size = DecodeUleb128(buffer_size);
-ushort buffer[decoded_buffer_size]  <bgcolor=cBlue>;
+TabStateBuffer buffer                <comment="Full size of the following text buffer.">;
 
 Footer footer;
