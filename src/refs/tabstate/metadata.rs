@@ -18,6 +18,7 @@ pub struct TabStateMetadata<'a> {
     pub filetime: VarIntRef<'a>,
     pub content_hash: &'a [u8; 0x20],
     pub unk: &'a u8,
+    pub unk2: &'a u8,
 }
 
 impl<'a> TabStateMetadata<'a> {
@@ -29,6 +30,7 @@ impl<'a> TabStateMetadata<'a> {
         filetime: VarIntRef<'a>,
         content_hash: &'a [u8; 0x20],
         unk: &'a u8,
+        unk2: &'a u8,
     ) -> Self {
         Self {
             file_path,
@@ -38,6 +40,7 @@ impl<'a> TabStateMetadata<'a> {
             filetime,
             content_hash,
             unk,
+            unk2,
         }
     }
     pub fn from_reader(br: &mut BufferReader<'a>) -> std::io::Result<Self> {
@@ -73,6 +76,7 @@ impl<'a> TabStateMetadata<'a> {
         let filetime = VarIntRef::from_reader(br)?;
         let content_hash = br.read_t()?;
         let unk = br.read_t()?;
+        let unk2 = br.read_t()?;
 
         Ok(Self::new(
             file_path,
@@ -82,6 +86,7 @@ impl<'a> TabStateMetadata<'a> {
             filetime,
             content_hash,
             unk,
+            unk2,
         ))
     }
     /// Get a reference to the file path len VarInt that represents the size in chars of the text file
@@ -110,5 +115,11 @@ impl<'a> TabStateMetadata<'a> {
     }
     pub fn get_content_hash(&'a self) -> &'a [u8; 0x20] {
         self.content_hash
+    }
+    pub fn get_unk(&'a self) -> &'a u8 {
+        self.unk
+    }
+    pub fn get_unk2(&'a self) -> &'a u8 {
+        self.unk2
     }
 }

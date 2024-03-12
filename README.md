@@ -62,6 +62,8 @@ store FileTime as a varint, but.... Microsoft..
 [here](https://github.com/ogmini/Notepad-Tabstate-Buffer).  
 [joost-j](https://github.com/joost-j) - Thank you for starting the python dissect PR which lead to a lot of good discussion
 and discovery!  
+[daddycocoaman](https://github.com/daddycocoaman) - Thank you for your efforts, and showing me the options structure and
+what each one means!  
 
 ## Todo
 > Figure out any inkling of how the unsaved buffers work before notepad has closed, so I can figure out how to read them.  

@@ -11,7 +11,6 @@ pub const ENCODINGS: [u8; 5] = [
     Encoding::UTF8 as u8,
 ];
 pub const CARRIAGE_TYPES: [u8; 2] = [CarriageType::Unix as u8, CarriageType::CRLF as u8];
-pub const CURSOR_START_MARKER: u8 = 0x01;
-pub const CURSOR_END_MARKER: [u8; 4] = [0x01, 0x00, 0x00, 0x00];
+pub const METADATA_UNK2: u8 = 0x01;
 pub const MAX_VAL: u8 = 0x7F;
 pub const SIGN_BIT: u8 = 0x80;

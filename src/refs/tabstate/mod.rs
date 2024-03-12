@@ -1,8 +1,9 @@
 #![doc = "TabState references to each part of a TabState file. This is generic, so some parts are optional"]
 
-use crate::consts::{CURSOR_END_MARKER, CURSOR_START_MARKER, FILE_STATE_SAVED, FILE_STATE_UNSAVED};
+use crate::consts::{FILE_STATE_SAVED, FILE_STATE_UNSAVED, METADATA_UNK2};
 use crate::footer::TabStateFooter;
 use crate::header::Header;
+use crate::options::TabStateOptions;
 use crate::refs::tabstate::buffer::TabStateBufferRef;
 use crate::refs::tabstate::cursor::TabStateCursor;
 use crate::refs::tabstate::metadata::TabStateMetadata;
@@ -21,6 +22,7 @@ pub struct TabStateRefs<'a> {
     header: &'a Header,
     metadata: Option<TabStateMetadata<'a>>,
     cursor: TabStateCursor<'a>,
+    options: &'a TabStateOptions,
     text_buffer: TabStateBufferRef<'a>,
     footer: &'a TabStateFooter,
 }
@@ -31,6 +33,7 @@ impl<'a> TabStateRefs<'a> {
         header: &'a Header,
         metadata: Option<TabStateMetadata<'a>>,
         cursor: TabStateCursor<'a>,
+        options: &'a TabStateOptions,
         text_buffer: TabStateBufferRef<'a>,
         footer: &'a TabStateFooter,
     ) -> TabStateRefs<'a> {
@@ -38,6 +41,7 @@ impl<'a> TabStateRefs<'a> {
             header,
             metadata,
             cursor,
+            options,
             text_buffer,
             footer,
         }
@@ -87,8 +91,8 @@ impl<'a> TabStateRefs<'a> {
 
         // We have to match as u8s, otherwise the compiler thinks the final case is unreachable, which
         // is not true in this case, and the code will be optimized out.
-        let saved_refs = match header.state as u8 {
-            FILE_STATE_SAVED => Some(TabStateMetadata::from_reader(&br)?),
+        let metadata = match header.state as u8 {
+            FILE_STATE_SAVED => Some(TabStateMetadata::from_reader(&mut br)?),
             FILE_STATE_UNSAVED => None,
             file_state => return Err(Error::new(
                 ErrorKind::Unsupported,
@@ -104,34 +108,30 @@ impl<'a> TabStateRefs<'a> {
             )),
         };
 
-        // Read the second marker, and make sure it's what's expected.
-        let start_marker = br.read_byte()?;
-        if start_marker != CURSOR_START_MARKER {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                format!(
-                    "Unknown marker encountered. Expected: {CURSOR_START_MARKER:02X?} Got: {:02X?}.",
-                    start_marker
-                ),
-            ));
-        }
+        // Check that the second unk in `TabStateMetaData` is 1 or not. If it isn't, we need to inspect
+        // this file.
+        if let Some(mdata) = metadata {
+            if *mdata.get_unk2() != METADATA_UNK2 {
+                return Err(Error::new(
+                        ErrorKind::InvalidData,
+                        format!(
+                            "Unknown value encountered for TabStateMetadata::unk2. Expected: 1 Got: {:02X?}.\n\
+                            Pleas inspect this file and help figure out the missing value means!",
+                            *mdata.get_unk2()
+                        ),
+                    ));
+            };
+        };
 
         // After the first marker should be two more VarInt. These represent the cursor start and end
         // point for selection. They will be equal if there is no selection.
-        let cursor_start = VarIntRef::from_reader(&br)?;
-        let cursor_end = VarIntRef::from_reader(&br)?;
+        let cursor_start = VarIntRef::from_reader(&mut br)?;
+        let cursor_end = VarIntRef::from_reader(&mut br)?;
 
-        // Read the third marker, which denotes the end of the two cursor start points.
-        let end_marker = br.read_bytes(CURSOR_END_MARKER.len())?;
-        if end_marker != CURSOR_END_MARKER {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                format!("Could not find marker bytes: {CURSOR_END_MARKER:02X?}"),
-            ));
-        };
+        let options = br.read_t()?;
 
         // This is the main text buffer in the TabState.
-        let text_buffer = TabStateBufferRef::from_reader(&br)?;
+        let text_buffer = TabStateBufferRef::from_reader(&mut br)?;
 
         // It always ends with this footer. I am not sure if it's there if there's extra data, as there
         // sometimes is extra data. It might still be after the text buffer AND at the end of the file.
@@ -148,8 +148,9 @@ impl<'a> TabStateRefs<'a> {
 
         Ok(TabStateRefs::new(
             header,
-            saved_refs,
+            metadata,
             TabStateCursor::new(cursor_start, cursor_end),
+            options,
             text_buffer,
             footer,
         ))
