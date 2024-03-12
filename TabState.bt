@@ -39,8 +39,10 @@ typedef struct {
     ubyte unk; 
 } Metadata <bgcolor=cGreen>;
 typedef struct {
+    ubyte cursor_marker                 <comment="Should be value 1", bgcolor=cWhite>; 
     Uleb128 cursor_start                <comment="Cursor Start Position.">;
     Uleb128 cursor_end                  <comment="Cursor End Position.">;
+    uint32 cursor_marker_end            <comment="Should be value 1", bgcolor=cWhite>;
 } CursorData;
 
 typedef struct {
@@ -83,11 +85,9 @@ if (header.state == 1) {
 }
 
 // Cursor
-ubyte cursor_marker                 <comment="Should be value 1", bgcolor=cWhite>; 
 CursorData cursor                   <comment="Cursor Start and End Position. Same position if no selection">;
-uint32 cursor_marker_end            <comment="Should be value 1", bgcolor=cWhite>;
 
 // Main Text Buffer
-TabStateBuffer buffer                <comment="Full size of the following text buffer.">;
+TabStateBuffer buffer               <comment="Full size of the following text buffer.">;
 
 Footer footer;
