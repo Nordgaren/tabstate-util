@@ -2,9 +2,9 @@ pub mod consts;
 pub mod enums;
 pub mod footer;
 pub mod header;
+pub mod options;
 pub mod refs;
 pub mod varint;
-pub mod options;
 
 use crate::consts::*;
 use crate::refs::tabstate::TabStateRefs;

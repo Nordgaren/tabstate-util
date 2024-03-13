@@ -16,7 +16,7 @@
 
 typedef struct {
     uint16  magic       <comment="Header Magic = 0x504E",format=hex>;
-    ubyte   null;
+    ubyte   unk;
     ubyte   state       <comment="state of the file">;
 } Header <style=sHeading1>;
 
@@ -53,7 +53,7 @@ typedef struct {
 } TabStateOptions <bgcolor=cWhite>;
 
 typedef struct {
-    ubyte null;
+    ubyte unk;
     uint32 crc32 <format=hex>;
 } Footer <bgcolor=0xFFFF00>;
 

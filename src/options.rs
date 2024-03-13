@@ -1,6 +1,5 @@
 use bytemuck::AnyBitPattern;
 
-
 /// An option struct that holds text editor option state for the tab.
 #[repr(C)]
 #[derive(Copy, Clone, AnyBitPattern)]
