@@ -14,10 +14,15 @@
 //                   Structs
 //------------------------------------------------
 
+enum <ubyte> State { 
+    Saved = 1, 
+    Unsaved = 0 
+};
+
 typedef struct {
     uint16  magic       <comment="Header Magic = 0x504E",format=hex>;
     ubyte   unk;
-    ubyte   state       <comment="state of the file">;
+    State   state       <comment="state of the file">;
 } Header <style=sHeading1>;
 
 typedef struct {
@@ -31,9 +36,22 @@ typedef struct {
     ushort buffer[DecodeUleb128(size)]  <bgcolor=cBlue>;
 } TabStateBuffer <style=sHeading1>;
 
+enum <ubyte> Encoding { 
+    ANSI = 1,
+    UTF16LE = 2,
+    UTF16BE = 3,
+    UTF8BOM = 4,
+    UTF8 = 5,
+};
+
+enum <ubyte> CarriageType { 
+    Unix = 1,
+    CRLF = 3,
+};
+
 typedef struct {
-    ubyte encoding              <bgcolor=0x00FFFF>;
-    ubyte carriage_type         <bgcolor=0xFFFF00>;
+    Encoding encoding           <bgcolor=0x00FFFF>;
+    CarriageType carriage_type  <bgcolor=0xFFFF00>;
     Uleb128 file_time;   
     ubyte content_hash[0x20]    <bgcolor=0xFF00AA, format=hex>;
     ubyte unk; 
