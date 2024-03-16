@@ -13,7 +13,9 @@ impl<'a> VarIntRef<'a> {
     /// is invalid, which includes empty buffer, leading bytes not being signed, or last byte being
     /// signed
     pub fn new(buffer: &'a [u8]) -> std::io::Result<Self> {
-        Ok(Self { buffer: crate::varint::validate_buffer(buffer)? })
+        Ok(Self {
+            buffer: crate::varint::validate_buffer(buffer)?,
+        })
     }
     /// Assumes the provided buffer is only the varint bytes.
     ///
@@ -40,7 +42,9 @@ impl<'a> VarIntRef<'a> {
             }
         }
 
-        Ok(Self { buffer: br.read_bytes(count)? })
+        Ok(Self {
+            buffer: br.read_bytes(count)?,
+        })
     }
     /// Decodes a varint from the provided bytes
     #[inline(always)]

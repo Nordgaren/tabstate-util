@@ -64,10 +64,12 @@ impl VarInt {
 pub fn validate_buffer(buffer: &[u8]) -> std::io::Result<&[u8]> {
     let last = match buffer.last() {
         Some(b) => b,
-        None => return Err(Error::new(
-            ErrorKind::InvalidData,
-            "size buffer cannot be of length 0",
-        )),
+        None => {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "size buffer cannot be of length 0",
+            ))
+        }
     };
 
     if last & SIGN_BIT != 0 {
@@ -77,7 +79,7 @@ pub fn validate_buffer(buffer: &[u8]) -> std::io::Result<&[u8]> {
         ));
     }
 
-    for byte in  buffer.iter().take(buffer.len() - 1) {
+    for byte in buffer.iter().take(buffer.len() - 1) {
         if byte & SIGN_BIT == 0 {
             return Err(Error::new(
                 ErrorKind::InvalidData,
