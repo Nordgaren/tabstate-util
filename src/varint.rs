@@ -8,34 +8,33 @@ pub struct VarInt {
 }
 
 impl VarInt {
-    pub fn new(num: u128) -> VarInt {
+    pub fn new(mut num: u128) -> VarInt {
         let mut buffer = vec![];
 
-        let mut val = num;
-        while val > MAX_VAL as u128 {
-            let chunk = get_chunk(val);
+        while num > MAX_VAL as u128 {
+            let chunk = get_chunk(num);
             buffer.push(chunk | SIGN_BIT);
-            val >>= 7;
+            num >>= 7;
         }
 
-        buffer.push(val as u8);
+        buffer.push(num as u8);
 
         Self { buffer }
     }
-    /// Copies the provided buffer to a new vector and returns a `VarInt`
+    /// Copies the provided buffer to a new vector and returns a `VarInt`. Returns an error if the provided
+    /// buffer is invalid, which includes empty buffer, leading bytes not being signed, or last byte
+    /// being signed
     pub fn from_buffer(buffer: &[u8]) -> std::io::Result<Self> {
-        if buffer.is_empty() {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                "size buffer cannot be of length 0",
-            ));
-        }
-
         Ok(Self {
-            buffer: buffer.to_vec(),
+            buffer: validate_buffer(buffer)?.to_vec(),
         })
     }
     /// Copies the provided buffer to a new vector and returns a `VarInt`
+    ///
+    /// # Safety
+    ///
+    /// Does not check if the provided buffer is valid.
+    #[inline(always)]
     pub(crate) unsafe fn from_buffer_unchecked(buffer: &[u8]) -> Self {
         Self {
             buffer: buffer.to_vec(),
@@ -44,19 +43,50 @@ impl VarInt {
     pub fn get_ref(&self) -> VarIntRef {
         unsafe { VarIntRef::new_unchecked(&self.buffer[..]) }
     }
+    #[inline(always)]
     pub fn get_buffer(&self) -> &[u8] {
         &self.buffer[..]
     }
-
+    #[inline(always)]
     pub fn size_of(&self) -> usize {
         self.buffer.len()
     }
+    #[inline(always)]
     pub fn decode(&self) -> usize {
-        decode(self.get_buffer()) as usize
+        self.decode_lossless() as usize
     }
+    #[inline(always)]
     pub fn decode_lossless(&self) -> u128 {
         decode(self.get_buffer())
     }
+}
+
+pub fn validate_buffer(buffer: &[u8]) -> std::io::Result<&[u8]> {
+    let last = match buffer.last() {
+        Some(b) => b,
+        None => return Err(Error::new(
+            ErrorKind::InvalidData,
+            "size buffer cannot be of length 0",
+        )),
+    };
+
+    if last & SIGN_BIT != 0 {
+        return Err(Error::new(
+            ErrorKind::InvalidData,
+            "Invalid varint. Last byte has sign bit set.",
+        ));
+    }
+
+    for byte in  buffer.iter().take(buffer.len() - 1) {
+        if byte & SIGN_BIT == 0 {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "Invalid varint. Leading bytes do not have sign bit set.",
+            ));
+        }
+    }
+
+    Ok(buffer)
 }
 
 pub fn decode(buffer: &[u8]) -> u128 {
@@ -71,6 +101,7 @@ pub fn decode(buffer: &[u8]) -> u128 {
     size
 }
 
+#[inline(always)]
 fn get_chunk(val: u128) -> u8 {
     (val & MAX_VAL as u128) as u8
 }
@@ -113,6 +144,34 @@ mod tests {
     #[test]
     fn encode_varint_should_be_two_bytes() {
         let varint = VarInt::new(SIGN_BIT as u128);
+        assert_eq!(TEST_FOUR, varint.get_ref().get_buffer());
+    }
+
+    /// This should panic because the first byte does not have a sign bit.
+    #[test]
+    #[should_panic]
+    fn invalid_varint_leading_bytes() {
+        let buffer = [0x10, 0x80, 0x5];
+
+        let varint = VarInt::from_buffer(&buffer[..]).unwrap();
+    }
+
+    /// This should panic because the second byte does not have a sign bit.
+    #[test]
+    #[should_panic]
+    fn invalid_varint_leading_bytes_two() {
+        let buffer = [0x80, 0x10, 0x5];
+
+        let varint = VarInt::from_buffer(&buffer[..]).unwrap();
+    }
+
+    /// This should panic because the first byte does not have a sign bit.
+    #[test]
+    #[should_panic]
+    fn invalid_varint_last_bytes() {
+        let buffer = [0x80, 0x80, 0x90];
+
+        let varint = VarInt::from_buffer(&buffer[..]).unwrap();
         assert_eq!(TEST_FOUR, varint.get_ref().get_buffer());
     }
 }
