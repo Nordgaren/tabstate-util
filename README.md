@@ -6,7 +6,7 @@ A buffer reader for notepad TabState buffers.
 ## Does it work?
 ~~Lmao~~  
 It works for the most part, now. Check below. There is still data that doesn't get parsed, and I probably have a few definitions
-incorrect, but for now it does work for the most part. Still need to figure out the multi-buffer stuff.    
+incorrect, but for now it does work for most files. Still need to figure out the multi-buffer stuff.    
 
 ## How do I use it?
 The tab buffers are located in `%localappdata%\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\LocalState\TabState`.

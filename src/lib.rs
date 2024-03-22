@@ -31,11 +31,12 @@ impl<'a> TabStateReader<'a> {
     }
 }
 
-/// # Leaving this for the funny
+/// # Leaving this for the funny. Deprecated.
 /// Decodes the buffer as a size that wraps at 127. Then the count starts at 0x80. It's basically wrapping
 /// as `i8::MAX`, but the carry bytes all have the sign bit set. I wonder if this is for them to decode
 /// in order?
 #[allow(unused)]
+#[deprecated]
 fn read_cursed_size_format(size_buffer: &[u8]) -> std::io::Result<usize> {
     if size_buffer.len() > 2 {
         return Err(Error::new(

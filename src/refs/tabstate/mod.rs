@@ -1,4 +1,4 @@
-#![doc = "TabState references to each part of a TabState file. This is generic, so some parts are optional"]
+#![doc = "TabState references to each part of a TabState file. This covers all variants of the tabstate file, so some parts are optional"]
 
 use crate::consts::{FILE_STATE_SAVED, FILE_STATE_UNSAVED, METADATA_UNK2};
 use crate::footer::TabStateFooter;
