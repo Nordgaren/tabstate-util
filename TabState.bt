@@ -46,6 +46,7 @@ enum <ubyte> Encoding {
 
 enum <ubyte> CarriageType { 
     CRLF = 1,
+    Macintosh = 2,
     Unix = 3,
 };
 
