@@ -45,8 +45,8 @@ enum <ubyte> Encoding {
 };
 
 enum <ubyte> CarriageType { 
-    Unix = 1,
-    CRLF = 3,
+    CRLF = 1,
+    Unix = 3,
 };
 
 typedef struct {
