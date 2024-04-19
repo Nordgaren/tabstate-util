@@ -155,7 +155,7 @@ mod tests {
     fn invalid_varint_leading_bytes() {
         let buffer = [0x10, 0x80, 0x5];
 
-        let varint = VarInt::from_buffer(&buffer[..]).unwrap();
+        let _ = VarInt::from_buffer(&buffer[..]).unwrap();
     }
 
     /// This should panic because the second byte does not have a sign bit.
@@ -164,16 +164,15 @@ mod tests {
     fn invalid_varint_leading_bytes_two() {
         let buffer = [0x80, 0x10, 0x5];
 
-        let varint = VarInt::from_buffer(&buffer[..]).unwrap();
+        let _ = VarInt::from_buffer(&buffer[..]).unwrap();
     }
 
-    /// This should panic because the first byte does not have a sign bit.
+    /// This should panic because the last byte has a sign bit.
     #[test]
     #[should_panic]
     fn invalid_varint_last_bytes() {
         let buffer = [0x80, 0x80, 0x90];
 
-        let varint = VarInt::from_buffer(&buffer[..]).unwrap();
-        assert_eq!(TEST_FOUR, varint.get_ref().get_buffer());
+        let _ = VarInt::from_buffer(&buffer[..]).unwrap();
     }
 }
